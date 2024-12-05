@@ -58,7 +58,6 @@ for df in tqdm(AmBe_df_list):
         continue
     if "Garbage" in dfinfo["run_description"].values[0]:
         continue
-    print(dfinfo["source_type"].values[0])
     if dfinfo['pedestal_run'].values[0]==1:
         AmBe_pedestal_df_list.append(df)
     elif dfinfo['pedestal_run'].values[0]==0 and "parking" in dfinfo["run_description"].values[0]:
@@ -81,3 +80,12 @@ for df in tqdm(AmBe_df_list):
 def merge_and_create_parquet(df_list, file_name):
     df = pd.concat(df_list)
     df.to_parquet(file_name)
+
+merge_and_create_parquet(AmBe_data_df_list, "AmBe_data.parquet")
+merge_and_create_parquet(AmBe_pedestal_df_list, "AmBe_pedestal.parquet")
+merge_and_create_parquet(AmBe_parking_df_list, "AmBe_parking.parquet")
+merge_and_create_parquet(AmBe_step1_df_list, "AmBe_step1.parquet")
+merge_and_create_parquet(AmBe_step2_df_list, "AmBe_step2.parquet")
+merge_and_create_parquet(AmBe_step3_df_list, "AmBe_step3.parquet")
+merge_and_create_parquet(AmBe_step4_df_list, "AmBe_step4.parquet")
+merge_and_create_parquet(AmBe_step5_df_list, "AmBe_step5.parquet")
