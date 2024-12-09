@@ -7,6 +7,15 @@ import math
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/RECO/Run5/"
 
+class RunType:
+    def __init__(self, name, run_list, is_ped, source_pos, source_type):
+        self.name = name
+        self.run_list = run_list
+        self.is_ped = is_ped
+        self.source_pos = source_pos
+        self.source_type = source_type
+
+
 def create_df_list(run_start,run_end,runlog_df):
 
     param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
