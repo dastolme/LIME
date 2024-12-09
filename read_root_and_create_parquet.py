@@ -59,10 +59,6 @@ def main():
         if isinstance(dfinfo["stop_time"].values[0], float):
             if math.isnan(dfinfo["stop_time"].values[0]):
                 continue
-        if "garbage" in dfinfo["run_description"].values[0]:
-            continue
-        if "Garbage" in dfinfo["run_description"].values[0]:
-            continue
         if dfinfo['pedestal_run'].values[0]==1:
             pedestal_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and "parking" in dfinfo["run_description"].values[0]:
