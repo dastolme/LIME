@@ -41,18 +41,18 @@ def main():
 
     runlog_df = pd.read_csv("runlog.csv")
 
-    AmBe_df_list = create_df_list(AmBe_campaign[0],AmBe_campaign[1],runlog_df)
+    df_list = create_df_list(Run5_last_days[0],Run5_last_days[1],runlog_df)
 
-    AmBe_data_df_list = []
-    AmBe_pedestal_df_list = []
-    AmBe_parking_df_list = []
-    AmBe_step1_df_list = []
-    AmBe_step2_df_list = []
-    AmBe_step3_df_list = []
-    AmBe_step4_df_list = []
-    AmBe_step5_df_list = []
+    data_df_list = []
+    pedestal_df_list = []
+    parking_df_list = []
+    step1_df_list = []
+    step2_df_list = []
+    step3_df_list = []
+    step4_df_list = []
+    step5_df_list = []
 
-    for df in tqdm(AmBe_df_list):
+    for df in tqdm(df_list):
         dfinfo = runlog_df[runlog_df["run_number"]==df['run'].unique()[0]].copy()
         if len(dfinfo) == 0:
             continue
@@ -64,32 +64,32 @@ def main():
         if "Garbage" in dfinfo["run_description"].values[0]:
             continue
         if dfinfo['pedestal_run'].values[0]==1:
-            AmBe_pedestal_df_list.append(df)
+            pedestal_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and "parking" in dfinfo["run_description"].values[0]:
-            AmBe_parking_df_list.append(df)
+            parking_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==3.5:
-            AmBe_step1_df_list.append(df)
+            step1_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==10.5:
-            AmBe_step2_df_list.append(df)
+            step2_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==17.5:
-            AmBe_step3_df_list.append(df)
+            step3_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==24.5:
-            AmBe_step4_df_list.append(df)
+            step4_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==32.5:
-            AmBe_step5_df_list.append(df)
+            step5_df_list.append(df)
         elif dfinfo['pedestal_run'].values[0]==0 and (dfinfo["source_type"].values[0]==0 or dfinfo["source_type"].values[0]==2):
-            AmBe_data_df_list.append(df)
+            data_df_list.append(df)
         else:
             continue
 
-    merge_and_create_parquet(AmBe_data_df_list, "AmBe_data.parquet")
-    merge_and_create_parquet(AmBe_pedestal_df_list, "AmBe_pedestal.parquet")
-    merge_and_create_parquet(AmBe_parking_df_list, "AmBe_parking.parquet")
-    merge_and_create_parquet(AmBe_step1_df_list, "AmBe_step1.parquet")
-    merge_and_create_parquet(AmBe_step2_df_list, "AmBe_step2.parquet")
-    merge_and_create_parquet(AmBe_step3_df_list, "AmBe_step3.parquet")
-    merge_and_create_parquet(AmBe_step4_df_list, "AmBe_step4.parquet")
-    merge_and_create_parquet(AmBe_step5_df_list, "AmBe_step5.parquet")
+    merge_and_create_parquet(data_df_list, "data.parquet")
+    merge_and_create_parquet(pedestal_df_list, "pedestal.parquet")
+    merge_and_create_parquet(parking_df_list, "parking.parquet")
+    merge_and_create_parquet(step1_df_list, "step1.parquet")
+    merge_and_create_parquet(step2_df_list, "step2.parquet")
+    merge_and_create_parquet(step3_df_list, "step3.parquet")
+    merge_and_create_parquet(step4_df_list, "step4.parquet")
+    merge_and_create_parquet(step5_df_list, "step5.parquet")
 
 
 if __name__=="__main__":
