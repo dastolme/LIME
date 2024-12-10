@@ -22,29 +22,29 @@ class RunManager:
         self.run_start = run_start
         self.run_end   = run_end
 
-def create_df_list(run_start,run_end,runlog_df):
+    def create_df_list(self):
 
-    param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
-                't_DBSCAN', 't_variables', 'lp_len', 't_pedsub', 't_saturation', 't_zerosup',
-                't_xycut', 't_rebin', 't_medianfilter', 't_noisered', 'nSc', 'sc_size', 'sc_nhits',
-                'sc_integral', 'sc_corrintegral', 'sc_rms', 'sc_energy', 'sc_pathlength',
-                'sc_theta', 'sc_length', 'sc_width', 'sc_longrms', 'sc_latrms', 'sc_lfullrms',
-                'sc_tfullrms', 'sc_lp0amplitude', 'sc_lp0prominence', 'sc_lp0fwhm', 'sc_lp0mean',
-                'sc_tp0fwhm', 'sc_xmean', 'sc_ymean', 'sc_xmax', 'sc_xmin', 'sc_ymax', 'sc_ymin',
-                'sc_pearson', 'sc_tgaussamp', 'sc_tgaussmean', 'sc_tgausssigma', 'sc_tchi2',
-                'sc_tstatus', 'sc_lgaussamp', 'sc_lgaussmean', 'sc_lgausssigma', 'sc_lchi2', 'sc_lstatus',
-                'Lime_pressure', 'Atm_pressure', 'Lime_temperature', 'Atm_temperature', 'Humidity',
-                'Mixture_Density']
+        param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
+                    't_DBSCAN', 't_variables', 'lp_len', 't_pedsub', 't_saturation', 't_zerosup',
+                    't_xycut', 't_rebin', 't_medianfilter', 't_noisered', 'nSc', 'sc_size', 'sc_nhits',
+                    'sc_integral', 'sc_corrintegral', 'sc_rms', 'sc_energy', 'sc_pathlength',
+                    'sc_theta', 'sc_length', 'sc_width', 'sc_longrms', 'sc_latrms', 'sc_lfullrms',
+                    'sc_tfullrms', 'sc_lp0amplitude', 'sc_lp0prominence', 'sc_lp0fwhm', 'sc_lp0mean',
+                    'sc_tp0fwhm', 'sc_xmean', 'sc_ymean', 'sc_xmax', 'sc_xmin', 'sc_ymax', 'sc_ymin',
+                    'sc_pearson', 'sc_tgaussamp', 'sc_tgaussmean', 'sc_tgausssigma', 'sc_tchi2',
+                    'sc_tstatus', 'sc_lgaussamp', 'sc_lgaussmean', 'sc_lgausssigma', 'sc_lchi2', 'sc_lstatus',
+                    'Lime_pressure', 'Atm_pressure', 'Lime_temperature', 'Atm_temperature', 'Humidity',
+                    'Mixture_Density']
 
-    df_list = []
+        df_list = []
 
-    for run_number in tqdm(np.arange(run_start,run_end)):
-        if runlog_df["run_description"].values[0] != "garbage" and runlog_df["run_description"].values[0] != "Garbage":
-            with uproot.open(f"{CYGNO_ANALYSIS}reco_run{run_number}_3D.root") as root_file:
-                df_root_file = root_file["Events"].arrays(param_list, library="ak")
-                df_list.append(ak.to_dataframe(df_root_file))
-    
-    return df_list
+        for run_number in tqdm(np.arange(self.run_start,self.run_end)):
+            if self.runlog_df["run_description"].values[0] != "garbage" and self.runlog_df["run_description"].values[0] != "Garbage":
+                with uproot.open(f"{CYGNO_ANALYSIS}reco_run{run_number}_3D.root") as root_file:
+                    df_root_file = root_file["Events"].arrays(param_list, library="ak")
+                    df_list.append(ak.to_dataframe(df_root_file))
+        
+        return df_list
 
 def merge_and_create_parquet(df_list, file_name):
     df = pd.concat(df_list)
@@ -56,7 +56,8 @@ def main():
 
     runlog_df = pd.read_csv("runlog.csv")
 
-    df_list = create_df_list(Run5_last_days[0],Run5_last_days[1],runlog_df)
+    Run5 = RunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
+    df_list = RunManager.create_df_list(Run5)
 
     data_df_list = []
     pedestal_df_list = []
