@@ -15,6 +15,11 @@ class RunType:
         self.source_pos = source_pos
         self.source_type = source_type
 
+class RunManager:
+    def __init__(self, name, df_list):
+        self.name = name
+        self.df_list = df_list
+
 def create_df_list(run_start,run_end,runlog_df):
 
     param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
