@@ -16,10 +16,11 @@ class RunType:
         self.source_type = source_type
 
 class RunManager:
-    def __init__(self, name, df_list, runlog_df ):
+    def __init__(self, name, runlog_df, run_start, run_end):
         self.name = name
-        self.df_list = df_list
         self.runlog_df = runlog_df
+        self.run_start = run_start
+        self.run_end   = run_end
 
 def create_df_list(run_start,run_end,runlog_df):
 
