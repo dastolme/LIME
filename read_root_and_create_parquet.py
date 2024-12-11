@@ -85,20 +85,20 @@ class RunManager:
         run_type = ["pedestal", "parking", "step1", "step2", "step3", "step4", "step5", "data", "AmBe_data"]
         
         for type in run_type:
-            file_name = f"{folder}/{type}.parquet"
-            
+            file_name = f"{folder}/{type}.parquet"          
             df_list = []
+
             for run in run_list:
-                print(run.type)
-                df_list.append(run.dataframe)
+                if run.type == type:
+                    df_list.append(run.dataframe)
             
-            if not df_list:
+            if len(df_list) != 0:
                 df = pd.concat(df_list)
                 df.to_parquet(file_name)
 
 def main():
     AmBe_campaign = [96373,96619]
-    Run5_last_days = [95792,95800] #96372
+    Run5_last_days = [95792,96372]
 
     runlog_df = pd.read_csv("runlog.csv")
 
