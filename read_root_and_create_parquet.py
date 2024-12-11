@@ -80,9 +80,9 @@ class RunManager:
         return run_list
                 
 
-def merge_and_create_parquet(df_list, file_name):
-    df = pd.concat(df_list)
-    df.to_parquet(file_name)
+    def merge_and_create_parquet(self, run_list):
+        df = pd.concat(df_list)
+        df.to_parquet(file_name)
 
 def main():
     AmBe_campaign = [96373,96619]
@@ -95,55 +95,6 @@ def main():
 
     run_list = RunManager.add_runtype_tag(Run5, df_list)
     print(run_list)
-
-    data_df_list = []
-    pedestal_df_list = []
-    parking_df_list = []
-    step1_df_list = []
-    step2_df_list = []
-    step3_df_list = []
-    step4_df_list = []
-    step5_df_list = []
-
-    for df in tqdm(df_list):
-        dfinfo = runlog_df[runlog_df["run_number"]==df['run'].unique()[0]].copy()
-        if len(dfinfo) == 0:
-            continue
-        if isinstance(dfinfo["stop_time"].values[0], float):
-            if math.isnan(dfinfo["stop_time"].values[0]):
-                continue
-        if "garbage" in dfinfo["run_description"].values[0]:
-            continue
-        if "Garbage" in dfinfo["run_description"].values[0]:
-            continue
-        if dfinfo['pedestal_run'].values[0]==1:
-            pedestal_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and "parking" in dfinfo["run_description"].values[0]:
-            parking_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==3.5:
-            step1_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==10.5:
-            step2_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==17.5:
-            step3_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==24.5:
-            step4_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and dfinfo["source_position"].values[0]==32.5:
-            step5_df_list.append(df)
-        elif dfinfo['pedestal_run'].values[0]==0 and (dfinfo["source_type"].values[0]==0 or dfinfo["source_type"].values[0]==2):
-            data_df_list.append(df)
-        else:
-            continue
-
-    merge_and_create_parquet(data_df_list, "data.parquet")
-    merge_and_create_parquet(pedestal_df_list, "pedestal.parquet")
-    merge_and_create_parquet(parking_df_list, "parking.parquet")
-    merge_and_create_parquet(step1_df_list, "step1.parquet")
-    merge_and_create_parquet(step2_df_list, "step2.parquet")
-    merge_and_create_parquet(step3_df_list, "step3.parquet")
-    merge_and_create_parquet(step4_df_list, "step4.parquet")
-    merge_and_create_parquet(step5_df_list, "step5.parquet")
-
 
 if __name__=="__main__":
     main()
