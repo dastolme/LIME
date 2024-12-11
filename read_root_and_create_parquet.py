@@ -42,6 +42,43 @@ class RunManager:
                     df_list.append(ak.to_dataframe(df_root_file))
         
         return df_list
+    
+    def add_runtype_tag(self, df_list):
+
+        run_list = []
+
+        for df in tqdm(df_list):
+            dfinfo = self.runlog_df[self.runlog_df["run_number"]==df['run'].unique()[0]].copy()
+            if len(dfinfo) == 0:
+                continue
+            if isinstance(dfinfo["stop_time"].values[0], float):
+                if math.isnan(dfinfo["stop_time"].values[0]):
+                    continue
+
+            run = {"is_pedestal": dfinfo['pedestal_run'].values[0], "description": dfinfo["run_description"].values[0],
+                   "source_pos": dfinfo["source_position"].values[0], "source_type": dfinfo["source_type"].values[0]}
+            match run:
+                case {"is_pedestal": 1}:
+                    run_list.append(RunType("pedestal", df))
+                case {"is_pedestal": 0, "description": "parking"}:
+                    run_list.append(RunType("parking", df))
+                case {"is_pedestal": 0, "source_pos": 3.5}:
+                    run_list.append(RunType("step1", df))
+                case {"is_pedestal": 0, "source_pos": 10.5}:
+                    run_list.append(RunType("step2", df))
+                case {"is_pedestal": 0, "source_pos": 17.5}:
+                    run_list.append(RunType("step3", df))
+                case {"is_pedestal": 0, "source_pos": 24.5}:
+                    run_list.append(RunType("step4", df))
+                case {"is_pedestal": 0, "source_pos": 32.5}:
+                    run_list.append(RunType("step5", df))
+                case {"is_pedestal": 0, "source_type": 0}:
+                    run_list.append(RunType("data", df))
+                case {"is_pedestal": 0, "source_type": 2}:
+                    run_list.append(RunType("data", df))
+
+        return run_list
+                
 
 def merge_and_create_parquet(df_list, file_name):
     df = pd.concat(df_list)
@@ -55,6 +92,9 @@ def main():
 
     Run5 = RunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
     df_list = RunManager.create_df_list(Run5)
+
+    run_list = RunManager.add_runtype_tag(Run5, df_list)
+    print(run_list)
 
     data_df_list = []
     pedestal_df_list = []
