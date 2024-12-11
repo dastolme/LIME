@@ -8,12 +8,9 @@ import math
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/RECO/Run5/"
 
 class RunType:
-    def __init__(self, name, dataframe, is_ped, source_pos, source_type):
-        self.name = name
+    def __init__(self, type, dataframe):
+        self.type = type
         self.dataframe = dataframe
-        self.is_ped = is_ped
-        self.source_pos = source_pos
-        self.source_type = source_type
 
 class RunManager:
     def __init__(self, name, runlog_df, run_start, run_end):
