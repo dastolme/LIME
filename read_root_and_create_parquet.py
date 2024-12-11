@@ -57,10 +57,11 @@ class RunManager:
 
             run = {"is_pedestal": dfinfo['pedestal_run'].values[0], "description": dfinfo["run_description"].values[0],
                    "source_pos": dfinfo["source_position"].values[0], "source_type": dfinfo["source_type"].values[0]}
+            print(dfinfo["run_description"].values[0])
             match run:
                 case {"is_pedestal": 1}:
                     run_list.append(RunType("pedestal", df))
-                case {"is_pedestal": 0, "description": "parking"}:
+                case {"is_pedestal": 0, "description": "Daily Calibration, parking"}:
                     run_list.append(RunType("parking", df))
                 case {"is_pedestal": 0, "source_pos": 3.5}:
                     run_list.append(RunType("step1", df))
@@ -98,7 +99,7 @@ class RunManager:
 
 def main():
     AmBe_campaign = [96373,96619]
-    Run5_last_days = [95792,96372]
+    Run5_last_days = [95792,96000] #96372
 
     runlog_df = pd.read_csv("runlog.csv")
 
