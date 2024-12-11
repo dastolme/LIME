@@ -76,7 +76,7 @@ class RunManager:
                 case {"is_pedestal": 0, "source_type": 0}:
                     run_list.append(RunType("data", df))
                 case {"is_pedestal": 0, "source_type": 2}:
-                    run_list.append(RunType("AmBe_data", df))
+                    run_list.append(RunType("data", df))
 
         return run_list
                 
