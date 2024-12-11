@@ -36,7 +36,8 @@ class RunManager:
         df_list = []
 
         for run_number in tqdm(np.arange(self.run_start,self.run_end)):
-            if self.runlog_df["run_description"].values[0] != "garbage" and self.runlog_df["run_description"].values[0] != "Garbage":
+            description = self.runlog_df["run_description"].values[0]
+            if description != "garbage" and description != "Garbage":
                 with uproot.open(f"{CYGNO_ANALYSIS}reco_run{run_number}_3D.root") as root_file:
                     df_root_file = root_file["Events"].arrays(param_list, library="ak")
                     df_list.append(ak.to_dataframe(df_root_file))
