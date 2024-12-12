@@ -68,23 +68,23 @@ class RunManager:
                    "source_pos": dfinfo["source_position"].values[0], "source_type": dfinfo["source_type"].values[0]}
             match run:
                 case {"is_pedestal": 1}:
-                    run_list.append(RunType("pedestal", df))
+                    run_list.append(Run("pedestal", df))
                 case {"is_pedestal": 0, "description": "Daily Calibration, parking"}:
-                    run_list.append(RunType("parking", df))
+                    run_list.append(Run("parking", df))
                 case {"is_pedestal": 0, "source_pos": 3.5}:
-                    run_list.append(RunType("step1", df))
+                    run_list.append(Run("step1", df))
                 case {"is_pedestal": 0, "source_pos": 10.5}:
-                    run_list.append(RunType("step2", df))
+                    run_list.append(Run("step2", df))
                 case {"is_pedestal": 0, "source_pos": 17.5}:
-                    run_list.append(RunType("step3", df))
+                    run_list.append(Run("step3", df))
                 case {"is_pedestal": 0, "source_pos": 24.5}:
-                    run_list.append(RunType("step4", df))
+                    run_list.append(Run("step4", df))
                 case {"is_pedestal": 0, "source_pos": 32.5}:
-                    run_list.append(RunType("step5", df))
+                    run_list.append(Run("step5", df))
                 case {"is_pedestal": 0, "source_type": 0}:
-                    run_list.append(RunType("data", df))
+                    run_list.append(Run("data", df))
                 case {"is_pedestal": 0, "source_type": 2}:
-                    run_list.append(RunType("data", df))
+                    run_list.append(Run("data", df))
 
         return run_list
                 
