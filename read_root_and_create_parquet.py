@@ -9,7 +9,7 @@ from itertools import batched
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/RECO/Run5/"
 CHUNK_SIZE = 500
 
-class RunType:
+class Run:
     def __init__(self, type, dataframe):
         self.type = type
         self.dataframe = dataframe
