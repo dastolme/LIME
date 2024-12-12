@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from plotnine import *
 
 PIXEL_LINEAR_SIZE = 0.152 #mm
 
 Run5_data_file = "Run5_data/data.parquet"
 AmBe_data_file = "AmBe_data/data.parquet"
 
-data = pd.read_parquet(AmBe_data_file)
+data = pd.read_parquet(Run5_data_file)
 data['delta'] = data['sc_integral']/data['sc_nhits']
 
 rms_quality_cut = data['sc_rms'] > 6
@@ -17,10 +17,12 @@ normalized_sc_length = data_cut['sc_length'] * PIXEL_LINEAR_SIZE
 
 print(len(data_cut['run'].unique()))
 
-plt.hist2d(data_cut['sc_integral'], data_cut['delta'],
-           bins = [np.linspace(0, 100000, 1000), np.linspace(0, 40, 500)], cmin = 1)
-plt.xlabel('sc_integral')
-plt.ylabel('delta [counts/pixel]')
-plt.ylim(0,40)
-plt.xlim(0,100000)
-plt.show() 
+plot = (ggplot(data_cut, aes('sc_integral','delta'))
+        + theme_light()
+        + geom_bin_2d(bins = 200)
+        + xlim(0, 100_000)
+        + ylim(0, 40)
+        + labs(x=None,y=None)
+        )
+
+plot.save("delta_vs_sc_integral_RUN5.png")
