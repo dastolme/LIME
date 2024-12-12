@@ -4,6 +4,8 @@ import pandas as pd
 import awkward as ak
 from tqdm import tqdm
 import math
+import dask
+import dask_awkward
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/RECO/Run5/"
 
@@ -38,9 +40,12 @@ class RunManager:
         for run_number in tqdm(np.arange(self.run_start,self.run_end)):
             description = self.runlog_df["run_description"].values[0]
             if description != "garbage" and description != "Garbage":
-                with uproot.open(f"{CYGNO_ANALYSIS}reco_run{run_number}_3D.root") as root_file:
-                    df_root_file = root_file["Events"].arrays(param_list, library="ak")
-                    df_list.append(ak.to_dataframe(df_root_file))
+                try:
+                    with uproot.open(f"{CYGNO_ANALYSIS}reco_run{run_number}_3D.root", array_cache="1 GB", num_workers = 8) as root_file:
+                        df_root_file = root_file["Events"].arrays(param_list, library="ak")
+                        df_list.append(ak.to_dataframe(df_root_file))
+                except FileNotFoundError as e:
+                    continue
         
         return df_list
     
@@ -58,7 +63,6 @@ class RunManager:
 
             run = {"is_pedestal": dfinfo['pedestal_run'].values[0], "description": dfinfo["run_description"].values[0],
                    "source_pos": dfinfo["source_position"].values[0], "source_type": dfinfo["source_type"].values[0]}
-            print(dfinfo["run_description"].values[0])
             match run:
                 case {"is_pedestal": 1}:
                     run_list.append(RunType("pedestal", df))
@@ -99,16 +103,18 @@ class RunManager:
                 df.to_parquet(file_name)
 
 def main():
-    AmBe_campaign = [96373,96619]
-    Run5_last_days = [95792,96000] #96372
+    AmBe_campaign = [96373,98298]
+    Run5_last_days = [95792,96372]
 
     runlog_df = pd.read_csv("runlog.csv")
 
     Run5 = RunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
-    df_list = RunManager.create_df_list(Run5)
+    AmBe = RunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
+    
+    df_list = RunManager.create_df_list(AmBe)
 
-    run_list = RunManager.add_runtype_tag(Run5, df_list)
-    RunManager.merge_and_create_parquet(Run5, run_list, "check")
+    run_list = RunManager.add_runtype_tag(AmBe, df_list)
+    RunManager.merge_and_create_parquet(AmBe, run_list, "AmBe_data")
 
 if __name__=="__main__":
     main()
