@@ -49,6 +49,8 @@ class RunManager:
                             df_list.append(ak.to_dataframe(df_root_file))
                     except FileNotFoundError as e:
                         continue
+                    except TimeoutError as e:
+                        print(f"Root file opening failed (run number = {run_number})")
         
         return df_list
     
@@ -91,7 +93,7 @@ class RunManager:
 
     def merge_and_create_parquet(self, run_list, folder):
 
-        run_type = ["pedestal", "parking", "step1", "step2", "step3", "step4", "step5", "data", "AmBe_data"]
+        run_type = ["pedestal", "parking", "step1", "step2", "step3", "step4", "step5", "data"]
         
         for type in run_type:
             file_name = f"{folder}/{type}.parquet"          
