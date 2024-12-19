@@ -107,6 +107,11 @@ class RunManager:
                 df = pd.concat(df_list)
                 df.to_parquet(file_name)
 
+class Simulation:
+    def __init__(self, component, dataframe):
+        self.component = component
+        self.dataframe = dataframe
+
 def main():
     AmBe_campaign = [96373,98298]
     Run5_last_days = [92127,96372]
