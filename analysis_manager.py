@@ -14,7 +14,7 @@ class AnalysisManager:
         
         self.dataframe_cut = self.dataframe[rms_quality_cut & t_gausssigma_quality_cut]
 
-        return self.dataframe_cut
+        return self
     
     def apply_fiducial_cuts(self, x_min, x_max, y_min, y_max):
         fiducial_cut_xmin = self.calibration_df['sc_xmin'] > x_min
@@ -25,4 +25,4 @@ class AnalysisManager:
         self.dataframe_cut = self.dataframe[fiducial_cut_xmin & fiducial_cut_xmax &
                                             fiducial_cut_ymin & fiducial_cut_ymax]
 
-        return self.dataframe_cut
+        return self
