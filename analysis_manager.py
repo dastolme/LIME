@@ -12,7 +12,7 @@ class AnalysisManager:
         rms_quality_cut = self.dataframe['sc_rms'] > 6
         t_gausssigma_quality_cut = self.dataframe['sc_tgausssigma'] * PIXEL_LINEAR_SIZE > 0.5
         
-        self.dataframe_cut = self.dataframe[rms_quality_cut & t_gausssigma_quality_cut]
+        self.dataframe_cut = self.dataframe_cut[rms_quality_cut & t_gausssigma_quality_cut]
 
         return self
     
@@ -22,7 +22,7 @@ class AnalysisManager:
         fiducial_cut_ymin = self.calibration_df['sc_ymin'] > y_min
         fiducial_cut_ymax = self.calibration_df['sc_ymax'] < y_max
 
-        self.dataframe_cut = self.dataframe[fiducial_cut_xmin & fiducial_cut_xmax &
+        self.dataframe_cut = self.dataframe_cut[fiducial_cut_xmin & fiducial_cut_xmax &
                                             fiducial_cut_ymin & fiducial_cut_ymax]
 
         return self
