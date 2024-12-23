@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from lmfit.models import GaussianModel, ExponentialModel
 import matplotlib.pyplot as plt
-
-PIXEL_LINEAR_SIZE = 0.152 # mm
+from analysis_manager import AnalysisManager
 
 class Calibration:
     def __init__(self, data_df, calibration_df):
@@ -11,12 +10,10 @@ class Calibration:
         self.calibration_df = calibration_df
 
     def fit_iron_peak(self, iron_peak_window):
-        rms_quality_cut = self.calibration_df['sc_rms'] > 6
-        t_gausssigma_quality_cut = self.calibration_df['sc_tgausssigma'] * PIXEL_LINEAR_SIZE > 0.5
-        circularshape_cut = self.calibration_df['sc_width'] / self.calibration_df['sc_length'] > 0.60
-        calibration_df = self.calibration_df[rms_quality_cut & t_gausssigma_quality_cut & circularshape_cut]
+        analysis_calib_data = AnalysisManager(self.calibration_df)
+        analysis_calib_data.apply_quality_cuts().apply_fiducial_cuts(400,1900,400,1900).apply_slimness_cut(0.8)
 
-        counts, bin_edges = np.histogram(calibration_df['sc_integral'], bins = 1000, range = (0,iron_peak_window[1]))
+        counts, bin_edges = np.histogram(analysis_calib_data.dataframe_cut['sc_integral'], bins = 600, range = (0,iron_peak_window[1]))
         bin_widths = np.diff(bin_edges)
         x = bin_edges[:-1] + (bin_widths / 2)
         lower_index_iron_window = np.abs(x - iron_peak_window[0]).argmin()
