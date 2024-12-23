@@ -28,7 +28,7 @@ class AnalysisManager:
         return self
     
     def apply_slimness_cut(self, slimness_min):
-        slimness_cut = self.dataframe_cut['sc_width']/self.dataframe_cut['sc_lenght'] > slimness_min
+        slimness_cut = self.dataframe_cut['sc_width']/self.dataframe_cut['sc_length'] > slimness_min
 
         self.dataframe_cut = self.dataframe_cut[slimness_cut]
 
