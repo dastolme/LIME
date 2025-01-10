@@ -6,7 +6,10 @@ from tqdm import tqdm
 import math
 from itertools import batched
 
-CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/RECO/Run5/"
+CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
+RUN_5 = "/RECO/Run5/"
+CYGNO_SIMULATION = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-sim/"
+CSV_FILE_PATH = 
 CHUNK_SIZE = 500
 
 class Run:
@@ -44,7 +47,7 @@ class RunManager:
                 description = self.runlog_df["run_description"].values[0]
                 if description != "garbage" and description != "Garbage":
                     try:
-                        with uproot.open(f"{CYGNO_ANALYSIS}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
+                        with uproot.open(f"{CYGNO_ANALYSIS}{RUN_5}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
                             df_root_file = root_file["Events"].arrays(param_list, library="ak")
                             df_list.append(ak.to_dataframe(df_root_file))
                     except FileNotFoundError as e:
