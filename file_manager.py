@@ -113,6 +113,11 @@ class Simulation:
         self.equivalent_time = equivalent_time
         self.dataframe = dataframe
 
+class SimulationManager:
+    def __init__(self, components_list, geant4_catalog):
+        self.components_list = components_list
+        self.geant4_catalog = geant4_catalog
+
 def main():
     AmBe_campaign = [96373,98298]
     Run5_last_days = [92127,96372]
