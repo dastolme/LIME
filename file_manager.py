@@ -9,7 +9,6 @@ from itertools import batched
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "/RECO/Run5/"
 CYGNO_SIMULATION = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-sim/"
-CSV_FILE_PATH = 
 CHUNK_SIZE = 500
 
 class Run:
@@ -117,7 +116,8 @@ class Simulation:
         self.dataframe = dataframe
 
 class SimulationManager:
-    def __init__(self, components_list, geant4_catalog):
+    def __init__(self, run_number, components_list, geant4_catalog):
+        self.run_number = run_number
         self.components_list = components_list
         self.geant4_catalog = geant4_catalog
 
