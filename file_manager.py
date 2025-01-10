@@ -108,8 +108,9 @@ class RunManager:
                 df.to_parquet(file_name)
 
 class Simulation:
-    def __init__(self, component, dataframe):
+    def __init__(self, component, equivalent_time, dataframe):
         self.component = component
+        self.equivalent_time = equivalent_time
         self.dataframe = dataframe
 
 def main():
