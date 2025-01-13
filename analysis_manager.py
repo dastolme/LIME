@@ -38,10 +38,21 @@ class SimulationAnalysisManager(AnalysisManager):
     def __init__(self, dataframe):
         super().__init__(self, dataframe)
 
-    def apply_z_slice_cut(self, z_min, z_max):
+    def apply_MC_z_slice_cut(self, z_min, z_max):
         lower_z_cut = (self.dataframe_cut['MC_z_min'] + self.dataframe_cut['MC_z_max'])/2. > z_min
         upper_z_cut = (self.dataframe_cut['MC_z_min'] + self.dataframe_cut['MC_z_max'])/2. < z_max
 
         self.dataframe_cut = self.dataframe_cut[lower_z_cut & upper_z_cut]
 
         return self
+    
+    def apply_MC_energy_cut(self, e_min, e_max):
+        "Energy expressed in keV"
+
+        lower_energy_cut = self.dataframe_cut['MC_cutexposure_energy'] > e_min
+        upper_energy_cut = self.dataframe_cut['MC_cutexposure_energy'] < e_max
+
+        self.dataframe_cut = self.dataframe_cut[lower_energy_cut & upper_energy_cut]
+
+        return self
+
