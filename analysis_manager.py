@@ -33,3 +33,7 @@ class AnalysisManager:
         self.dataframe_cut = self.dataframe_cut[slimness_cut]
 
         return self
+    
+class SimulationAnalysisManager(AnalysisManager):
+    def __init__(self, dataframe):
+        super().__init__(self, dataframe)
