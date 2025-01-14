@@ -116,10 +116,31 @@ class Simulation:
         self.dataframe = dataframe
 
 class SimulationManager:
-    def __init__(self, run_number, components_list, geant4_catalog):
+    def __init__(self, run_number, internal_components, external_components, geant4_catalog):
         self.run_number = run_number
-        self.components_list = components_list
+        self.internal_components = internal_components
+        self.external_components = external_components
         self.geant4_catalog = geant4_catalog
+
+    def read_internal_bkg_data(self, reco_code_patch):
+        sim_list = []
+        digitized_file_path = f"digitized/LIME_background_Run{self.run_number}/"
+        
+        for component in self.internal_components:
+            df = pd.read_csv(f"{CYGNO_SIMULATION}{digitized_file_path}LIME_{component}/{reco_code_patch}/{component.lower()}_run{self.run_number}.csv")
+            sim_list.append(Simulation(component, None, df))
+        
+        return sim_list 
+
+    def read_external_bkg_data(self, reco_code_patch):
+        sim_list = []
+        digitized_file_path = f"digitized/LIME_background_Run{self.run_number}/"
+
+        for component in self.external_components:
+            df = pd.read_csv(f"{CYGNO_SIMULATION}{digitized_file_path}LIME_{component}/{reco_code_patch}/{component}_run{self.run_number}.csv")
+            sim_list.append(Simulation(component, None, df))
+
+        return sim_list 
 
 def main():
     AmBe_campaign = [96373,98298]
@@ -134,6 +155,11 @@ def main():
 
     run_list = RunManager.add_runtype_tag(Run5, df_list)
     RunManager.merge_and_create_parquet(Run5, run_list, "Run5_data")
+
+    internal_components = ["Resistors", "Cathode"]
+    external_components = []
+    LIME_simulation = SimulationManager(3, internal_components, external_components, "geant4_catalog.csv")
+    sim_list = SimulationManager.read_internal_bkg_data(LIME_simulation, "reco_winter23-patch2")
 
 if __name__=="__main__":
     main()
