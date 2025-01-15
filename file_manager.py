@@ -109,6 +109,12 @@ class RunManager:
                 df = pd.concat(df_list)
                 df.to_parquet(file_name)
 
+class Isotope:
+    def __init__(self, name, dataframe, t_eq):
+        self.name = name
+        self.dataframe = dataframe
+        self.t_eq = t_eq
+
 class Simulation:
     def __init__(self, component, equivalent_time, dataframe):
         self.component = component
