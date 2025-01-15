@@ -115,6 +115,11 @@ class Isotope:
         self.dataframe = dataframe
         self.t_eq = t_eq
 
+class InternalBkgSource:
+    def __init__(self, name, isotopes_list):
+        self.name = name
+        self.isotopes_list = isotopes_list
+
 class Simulation:
     def __init__(self, component, equivalent_time, dataframe):
         self.component = component
