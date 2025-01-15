@@ -125,10 +125,10 @@ class Simulation:
         self.int_bkg_sources_list = int_bkg_sources_list
 
 class SimulationManager:
-    def __init__(self, run_number, internal_components, external_components, geant4_catalog):
+    def __init__(self, run_number, internal_sources, external_sources, geant4_catalog):
         self.run_number = run_number
-        self.internal_components = internal_components
-        self.external_components = external_components
+        self.internal_components = internal_sources
+        self.external_components = external_sources
         self.geant4_catalog = geant4_catalog
 
     def read_internal_bkg_data(self, reco_code_patch):
