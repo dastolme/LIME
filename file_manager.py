@@ -121,10 +121,8 @@ class InternalBkgSource:
         self.isotopes_list = isotopes_list
 
 class Simulation:
-    def __init__(self, component, equivalent_time, dataframe):
-        self.component = component
-        self.equivalent_time = equivalent_time
-        self.dataframe = dataframe
+    def __init__(self, int_bkg_sources_list):
+        self.int_bkg_sources_list = int_bkg_sources_list
 
 class SimulationManager:
     def __init__(self, run_number, internal_components, external_components, geant4_catalog):
