@@ -5,6 +5,7 @@ import awkward as ak
 from tqdm import tqdm
 import math
 from itertools import batched
+import os
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "/RECO/Run5/"
@@ -131,25 +132,22 @@ class SimulationManager:
         self.ext_bkg_sources = ext_bkg_sources
         self.geant4_catalog = geant4_catalog
 
-    def read_internal_bkg_data(self, reco_code_patch):
-        sim_list = []
-        digitized_file_path = f"digitized/LIME_background_Run{self.run_number}/"
+    def read_internal_bkg_data(self):
+        run_file_path = f"LIME-digitized/Run{self.run_number}"
+        int_bkg_sources_list = []
         
-        for component in self.internal_components:
-            df = pd.read_csv(f"{CYGNO_SIMULATION}{digitized_file_path}LIME_{component}/{reco_code_patch}/{component.lower()}_run{self.run_number}.csv")
-            sim_list.append(Simulation(component, None, df))
+        for source in self.int_bkg_sources:
+            isotopes_list = []
+            folders_list = os.listdir(f"{CYGNO_SIMULATION}{run_file_path}{source}/")
+            
+            for folder in folders_list:
+                isotope_name = str(folder).partition('_')[3]
+                dataframe = uproot.open(f"{CYGNO_SIMULATION}{run_file_path}{source}/{folder}/reco_run*.root")
+                isotopes_list.append(Isotope(isotope_name, dataframe, None))
+            
+            int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
         
-        return sim_list 
-
-    def read_external_bkg_data(self, reco_code_patch):
-        sim_list = []
-        digitized_file_path = f"digitized/LIME_background_Run{self.run_number}/"
-
-        for component in self.external_components:
-            df = pd.read_csv(f"{CYGNO_SIMULATION}{digitized_file_path}LIME_{component}/{reco_code_patch}/{component}_run{self.run_number}.csv")
-            sim_list.append(Simulation(component, None, df))
-
-        return sim_list 
+        return Simulation(int_bkg_sources_list)
 
 def main():
     AmBe_campaign = [96373,98298]
@@ -165,10 +163,10 @@ def main():
     run_list = RunManager.add_runtype_tag(Run5, df_list)
     RunManager.merge_and_create_parquet(Run5, run_list, "Run5_data")
 
-    internal_components = ["Resistors", "Cathode"]
+    internal_components = ["Cathode"]
     external_components = []
-    LIME_simulation = SimulationManager(3, internal_components, external_components, "geant4_catalog.csv")
-    sim_list = SimulationManager.read_internal_bkg_data(LIME_simulation, "reco_winter23-patch2")
+    LIME_simulation = SimulationManager(5, internal_components, external_components, "geant4_catalog.csv")
+    LIME_simulation.read_internal_bkg_data()
 
 if __name__=="__main__":
     main()
