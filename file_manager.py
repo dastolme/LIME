@@ -132,7 +132,7 @@ class SimulationManager:
         self.ext_bkg_sources = ext_bkg_sources
         self.geant4_catalog = geant4_catalog
 
-    def calc_t_sim(self, N_sim_decays, mass, activity)
+    def calc_t_sim(self, N_sim_decays, mass, activity):
         return N_sim_decays/(mass * activity)
 
     def read_internal_bkg_data(self):
