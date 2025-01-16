@@ -111,10 +111,10 @@ class RunManager:
                 df.to_parquet(file_name)
 
 class Isotope:
-    def __init__(self, name, dataframe, t_eq):
+    def __init__(self, name, dataframe, t_sim):
         self.name = name
         self.dataframe = dataframe
-        self.t_eq = t_eq
+        self.t_sim = t_sim
 
 class InternalBkgSource:
     def __init__(self, name, isotopes_list):
