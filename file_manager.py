@@ -4,8 +4,12 @@ import pandas as pd
 import awkward as ak
 from tqdm import tqdm
 import math
-from itertools import batched
-import os
+from more_itertools import batched
+from urllib.request import urlopen
+import yaml
+import re
+import glob
+from pathlib import Path
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "/RECO/Run5/"
@@ -136,17 +140,38 @@ class SimulationManager:
         return N_sim_decays/(mass * activity)
 
     def read_internal_bkg_data(self):
-        run_file_path = f"LIME-digitized/Run{self.run_number}"
+        run_file_path = f"LIME-digitized/"
+        response = urlopen(f"{CYGNO_SIMULATION}")
+        xml = response.read().decode('utf-8')
+
+        geant4_catalog = pd.read_csv(self.geant4_catalog)
+        
         int_bkg_sources_list = []
+        
+        with open('components_mass.yaml', 'r') as file:
+            masses = yaml.safe_load(file)
+
+        with open('activities.yaml', 'r') as file:
+            dict_activity = yaml.full_load(file)
         
         for source in self.int_bkg_sources:
             isotopes_list = []
-            folders_list = os.listdir(f"{CYGNO_SIMULATION}{run_file_path}{source}/")
+            folders_name = re.compile(f"{run_file_path}{source}/.*/")
+            folders_list = folders_name.findall(xml)
             
             for folder in folders_list:
-                isotope_name = str(folder).partition('_')[3]
-                dataframe = uproot.open(f"{CYGNO_SIMULATION}{run_file_path}{source}/{folder}/reco_run*.root")
-                isotopes_list.append(Isotope(isotope_name, dataframe, None))
+                isotope_name = str(folder).partition('_')[2][:-1]
+
+                root_file_path = re.compile(f"/s3/cygno-sim/LIME_MC_data/LIME_{source}_Radioactivity_10umStep/.*_{isotope_name}.root")
+                N_sim_decays = geant4_catalog[geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
+                isotope_activity = [name for tuple, name in dict_activity[source].get('activities').items() if isotope_name in tuple][0]
+                t_sim = N_sim_decays / ( isotope_activity * masses[source] )
+                
+                reco_file_path = Path(f"{CYGNO_SIMULATION}{run_file_path}{source}/{folder}")
+                print(list(reco_file_path.glob("*.root")))
+                dataframe = uproot.open(reco_file_path.glob("reco_run*.root")[0])
+                
+                isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
             
             int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
         
@@ -166,7 +191,7 @@ def main():
     run_list = RunManager.add_runtype_tag(Run5, df_list)
     RunManager.merge_and_create_parquet(Run5, run_list, "Run5_data")
 
-    internal_components = ["Cathode"]
+    internal_components = ["AcrylicBox"]
     external_components = []
     LIME_simulation = SimulationManager(5, internal_components, external_components, "geant4_catalog.csv")
     LIME_simulation.read_internal_bkg_data()
