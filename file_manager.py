@@ -121,6 +121,9 @@ class Isotope:
         self.dataframe = dataframe
         self.t_sim = t_sim
 
+    def __repr__(self):
+        return f"Isotope name: {self.name} \n Dataframe: {(self.dataframe).head()} \n Equivalent simulation time: {self.t_sim} sec"
+
 class InternalBkgSource:
     def __init__(self, name, isotopes_list):
         self.name = name
@@ -201,7 +204,8 @@ class SimulationManager:
                 t_sim = N_sim_decays / ( isotope_activity * masses[source] )
 
                 reco_file_path = Path(f"{run_file_path}{source}/{folder}")
-                dataframe = uproot.open(list(reco_file_path.glob("*.root"))[0])
+                with uproot.open(list(reco_file_path.glob("*.root"))[0]) as reco_file:
+                    dataframe = ak.to_dataframe(reco_file['Events;1'].arrays(library = "ak"))
                 
                 isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
 
