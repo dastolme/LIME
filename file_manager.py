@@ -122,12 +122,15 @@ class Isotope:
         self.t_sim = t_sim
 
     def __repr__(self):
-        return f"Isotope name: {self.name} \n Dataframe: {(self.dataframe).head()} \n Equivalent simulation time: {self.t_sim} sec"
+        return f"Isotope name: {self.name}, Equivalent simulation time: {self.t_sim} sec \n"
 
 class InternalBkgSource:
     def __init__(self, name, isotopes_list):
         self.name = name
         self.isotopes_list = isotopes_list
+
+    def __repr__(self):
+        return f"Component name: {self.name} \n Isotopes list: {self.isotopes_list}"
 
 class Simulation:
     def __init__(self, int_bkg_sources_list):
@@ -210,6 +213,7 @@ class SimulationManager:
                 isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
 
             int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
+            print(repr(InternalBkgSource(source, isotopes_list)))
         
         return Simulation(int_bkg_sources_list)
 
