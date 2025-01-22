@@ -213,9 +213,16 @@ class SimulationManager:
                 isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
 
             int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
-            print(repr(InternalBkgSource(source, isotopes_list)))
         
         return Simulation(int_bkg_sources_list)
+    
+    def create_calib_df(self, Simulation):
+        sources_list = Simulation.int_bkg_sources_list
+        isotopes_list = [source.isotopes_list for source in sources_list]
+        calib_df = pd.concat([isotope.dataframe for sublist in isotopes_list for isotope in sublist])
+        
+        return calib_df
+        
 
 def main():
     AmBe_campaign = [96373,98298]
@@ -234,7 +241,8 @@ def main():
     internal_components = ["DetectorBody"]
     external_components = []
     LIME_simulation = SimulationManager(5, internal_components, external_components, "geant4_catalog.csv")
-    LIME_simulation.read_internal_bkg_data_local()
+    Run5_MC = LIME_simulation.read_internal_bkg_data_local()
+    LIME_simulation.create_calib_df(Run5_MC)
 
 if __name__=="__main__":
     main()
