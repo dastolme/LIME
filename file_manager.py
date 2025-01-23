@@ -17,12 +17,12 @@ RUN_5 = "/RECO/Run5/"
 CYGNO_SIMULATION = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-sim/"
 CHUNK_SIZE = 500
 
-class Run:
+class RecoRun:
     def __init__(self, type, dataframe):
         self.type = type
         self.dataframe = dataframe
 
-class RunManager:
+class RecoRunManager:
     def __init__(self, name, runlog_df, run_start, run_end):
         self.name = name
         self.runlog_df = runlog_df
@@ -78,23 +78,23 @@ class RunManager:
                    "source_pos": dfinfo["source_position"].values[0], "source_type": dfinfo["source_type"].values[0]}
             match run:
                 case {"is_pedestal": 1}:
-                    run_list.append(Run("pedestal", df))
+                    run_list.append(RecoRun("pedestal", df))
                 case {"is_pedestal": 0, "description": "Daily Calibration, parking"}:
-                    run_list.append(Run("parking", df))
+                    run_list.append(RecoRun("parking", df))
                 case {"is_pedestal": 0, "source_pos": 3.5}:
-                    run_list.append(Run("step1", df))
+                    run_list.append(RecoRun("step1", df))
                 case {"is_pedestal": 0, "source_pos": 10.5}:
-                    run_list.append(Run("step2", df))
+                    run_list.append(RecoRun("step2", df))
                 case {"is_pedestal": 0, "source_pos": 17.5}:
-                    run_list.append(Run("step3", df))
+                    run_list.append(RecoRun("step3", df))
                 case {"is_pedestal": 0, "source_pos": 24.5}:
-                    run_list.append(Run("step4", df))
+                    run_list.append(RecoRun("step4", df))
                 case {"is_pedestal": 0, "source_pos": 32.5}:
-                    run_list.append(Run("step5", df))
+                    run_list.append(RecoRun("step5", df))
                 case {"is_pedestal": 0, "source_type": 0}:
-                    run_list.append(Run("data", df))
+                    run_list.append(RecoRun("data", df))
                 case {"is_pedestal": 0, "source_type": 2}:
-                    run_list.append(Run("data", df))
+                    run_list.append(RecoRun("data", df))
 
         return run_list
                 
@@ -208,6 +208,7 @@ class SimulationManager:
 
                 reco_file_path = Path(f"{run_file_path}{source}/{folder}")
                 with uproot.open(list(reco_file_path.glob("*.root"))[0]) as reco_file:
+                    print(reco_file['Events;1'].keys())
                     dataframe = ak.to_dataframe(reco_file['Events;1'].arrays(library = "ak"))
                 
                 isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
@@ -230,13 +231,13 @@ def main():
 
     runlog_df = pd.read_csv("runlog.csv")
 
-    Run5 = RunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
-    AmBe = RunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
+    Run5 = RecoRunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
+    AmBe = RecoRunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
     
-    df_list = RunManager.create_df_list(Run5)
+    df_list = RecoRunManager.create_df_list(Run5)
 
-    run_list = RunManager.add_runtype_tag(Run5, df_list)
-    RunManager.merge_and_create_parquet(Run5, run_list, "Run5_data")
+    run_list = RecoRunManager.add_runtype_tag(Run5, df_list)
+    RecoRunManager.merge_and_create_parquet(Run5, run_list, "Run5_data")
 
     internal_components = ["DetectorBody"]
     external_components = []
