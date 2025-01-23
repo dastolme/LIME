@@ -115,6 +115,12 @@ class RecoRunManager:
                 df = pd.concat(df_list)
                 df.to_parquet(file_name)
 
+class Run:
+    def __init__(self, run_number, dataframe, R_PMT):
+        self.run_number = run_number
+        self.dataframe = dataframe
+        self.R_PMT = R_PMT
+
 class Isotope:
     def __init__(self, name, dataframe, t_sim):
         self.name = name
