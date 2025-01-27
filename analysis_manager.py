@@ -36,7 +36,7 @@ class AnalysisManager:
     
 class SimulationAnalysisManager(AnalysisManager):
     def __init__(self, dataframe):
-        super().__init__(self, dataframe)
+        super().__init__(dataframe)
 
     def apply_MC_z_slice_cut(self, z_min, z_max):
         lower_z_cut = (self.dataframe_cut['MC_z_min'] + self.dataframe_cut['MC_z_max'])/2. > z_min
