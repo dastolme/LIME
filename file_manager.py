@@ -13,9 +13,9 @@ from pathlib import Path
 import os
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
-RUN_5 = "/RECO/Run5/"
+RUN_5 = "RECO/Run5/"
 CYGNO_SIMULATION = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-sim/"
-CHUNK_SIZE = 500
+CHUNK_SIZE = 50
 
 class RecoRun:
     def __init__(self, type, dataframe):
@@ -53,8 +53,10 @@ class RecoRunManager:
                 if description != "garbage" and description != "Garbage":
                     try:
                         with uproot.open(f"{CYGNO_ANALYSIS}{RUN_5}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
-                            df_root_file = root_file["Events"].arrays(param_list, library="ak")
-                            df_list.append(ak.to_dataframe(df_root_file))
+                            CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
+                            PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
+                            df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
+                            df_list.append(df_data)
                     except FileNotFoundError as e:
                         continue
                     except TimeoutError as e:
@@ -66,7 +68,8 @@ class RecoRunManager:
 
         run_list = []
 
-        for df in tqdm(df_list):
+        for df_data in tqdm(df_list):
+            df = df_data[0]
             dfinfo = self.runlog_df[self.runlog_df["run_number"]==df['run'].unique()[0]].copy()
             if len(dfinfo) == 0:
                 continue
@@ -78,42 +81,44 @@ class RecoRunManager:
                    "source_pos": dfinfo["source_position"].values[0], "source_type": dfinfo["source_type"].values[0]}
             match run:
                 case {"is_pedestal": 1}:
-                    run_list.append(RecoRun("pedestal", df))
+                    run_list.append(RecoRun("pedestal", df_data))
                 case {"is_pedestal": 0, "description": "Daily Calibration, parking"}:
-                    run_list.append(RecoRun("parking", df))
+                    run_list.append(RecoRun("parking", df_data))
                 case {"is_pedestal": 0, "source_pos": 3.5}:
-                    run_list.append(RecoRun("step1", df))
+                    run_list.append(RecoRun("step1", df_data))
                 case {"is_pedestal": 0, "source_pos": 10.5}:
-                    run_list.append(RecoRun("step2", df))
+                    run_list.append(RecoRun("step2", df_data))
                 case {"is_pedestal": 0, "source_pos": 17.5}:
-                    run_list.append(RecoRun("step3", df))
+                    run_list.append(RecoRun("step3", df_data))
                 case {"is_pedestal": 0, "source_pos": 24.5}:
-                    run_list.append(RecoRun("step4", df))
+                    run_list.append(RecoRun("step4", df_data))
                 case {"is_pedestal": 0, "source_pos": 32.5}:
-                    run_list.append(RecoRun("step5", df))
+                    run_list.append(RecoRun("step5", df_data))
                 case {"is_pedestal": 0, "source_type": 0}:
-                    run_list.append(RecoRun("data", df))
+                    run_list.append(RecoRun("data", df_data))
                 case {"is_pedestal": 0, "source_type": 2}:
-                    run_list.append(RecoRun("data", df))
+                    run_list.append(RecoRun("data", df_data))
 
         return run_list
                 
 
-    def merge_and_create_parquet(self, run_list, folder):
+    def merge_and_create_hdf5(self, run_list, folder):
 
         run_type = ["pedestal", "parking", "step1", "step2", "step3", "step4", "step5", "data"]
         
         for type in run_type:
-            file_name = f"{folder}/{type}.parquet"          
-            df_list = []
+            store = pd.HDFStore(f"{folder}/{type}.h5", mode='w') 
+            df_data_list = []   
 
-            for run in run_list:
-                if run.type == type:
-                    df_list.append(run.dataframe)
+            [df_data_list.append(run.dataframe) for run in run_list if run.type == type]
             
-            if len(df_list) != 0:
-                df = pd.concat(df_list)
-                df.to_parquet(file_name)
+            if len(df_data_list) != 0:
+                CMOS_df = pd.concat([dataframe[0] for dataframe in df_data_list])
+                PMT_df = pd.concat([dataframe[1] for dataframe in df_data_list])
+                store['CMOS'] = CMOS_df
+                store['PMT'] = PMT_df
+
+            store.close()
 
 class Run:
     def __init__(self, run_number, dataframe, R_PMT):
@@ -232,7 +237,7 @@ class SimulationManager:
         
 
 def main():
-    AmBe_campaign = [96373,98298]
+    AmBe_campaign = [96373,96383] #98298
     Run5_last_days = [92127,96372]
 
     runlog_df = pd.read_csv("runlog.csv")
@@ -240,10 +245,10 @@ def main():
     Run5 = RecoRunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
     AmBe = RecoRunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
     
-    df_list = RecoRunManager.create_df_list(Run5)
+    df_list = RecoRunManager.create_df_list(AmBe)
 
-    run_list = RecoRunManager.add_runtype_tag(Run5, df_list)
-    RecoRunManager.merge_and_create_parquet(Run5, run_list, "Run5_data")
+    run_list = RecoRunManager.add_runtype_tag(AmBe, df_list)
+    RecoRunManager.merge_and_create_hdf5(AmBe, run_list, "AmBe_data")
 
     internal_components = ["DetectorBody"]
     external_components = []
