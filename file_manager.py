@@ -132,7 +132,8 @@ class RunManager:
         self.path_to_data = path_to_data
 
     def read_hdf5(self):
-        return pd.read_hdf(f"{self.path_to_data}/data.h5")
+        return pd.read_hdf(f"{self.path_to_data}/data.h5", key = "CMOS")
+
 
 class Isotope:
     def __init__(self, name, dataframe, t_sim):
