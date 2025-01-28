@@ -121,9 +121,9 @@ class RecoRunManager:
             store.close()
 
 class Run:
-    def __init__(self, run_number, dataframe, R_PMT):
+    def __init__(self, run_number, CMOS_dataframe, R_PMT):
         self.run_number = run_number
-        self.dataframe = dataframe
+        self.CMOS_dataframe = CMOS_dataframe
         self.R_PMT = R_PMT
 
 class Isotope:
