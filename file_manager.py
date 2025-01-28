@@ -29,7 +29,7 @@ class RecoRunManager:
         self.run_start = run_start
         self.run_end   = run_end
 
-    def create_df_list(self):
+    def create_df_list(self, data_dir_path):
 
         param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
                     't_DBSCAN', 't_variables', 'lp_len', 't_pedsub', 't_saturation', 't_zerosup',
@@ -52,7 +52,7 @@ class RecoRunManager:
                 description = self.runlog_df["run_description"].values[0]
                 if description != "garbage" and description != "Garbage":
                     try:
-                        with uproot.open(f"{CYGNO_ANALYSIS}{RUN_5}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
+                        with uproot.open(f"{data_dir_path}{RUN_5}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
                             CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
                             PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
                             df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
@@ -245,16 +245,17 @@ def main():
     Run5 = RecoRunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
     AmBe = RecoRunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
     
-    df_list = RecoRunManager.create_df_list(AmBe)
+    data_dir_path = f"{CYGNO_ANALYSIS}"
+    df_list = RecoRunManager.create_df_list(AmBe, data_dir_path)
 
     run_list = RecoRunManager.add_runtype_tag(AmBe, df_list)
     RecoRunManager.merge_and_create_hdf5(AmBe, run_list, "AmBe_data")
 
-    internal_components = ["DetectorBody"]
-    external_components = []
-    LIME_simulation = SimulationManager(5, internal_components, external_components, "geant4_catalog.csv")
-    Run5_MC = LIME_simulation.read_internal_bkg_data_local()
-    LIME_simulation.create_calib_df(Run5_MC)
+    # internal_components = ["DetectorBody"]
+    # external_components = []
+    # LIME_simulation = SimulationManager(5, internal_components, external_components, "geant4_catalog.csv")
+    # Run5_MC = LIME_simulation.read_internal_bkg_data_local()
+    # LIME_simulation.create_calib_df(Run5_MC)
 
 if __name__=="__main__":
     main()
