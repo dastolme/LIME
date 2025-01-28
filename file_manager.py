@@ -126,6 +126,11 @@ class Run:
         self.CMOS_dataframe = CMOS_dataframe
         self.R_PMT = R_PMT
 
+class RunManager:
+    def __int__(self, run_number, path_to_data):
+        self.run_number = run_number
+        self.path_to_data = path_to_data
+
 class Isotope:
     def __init__(self, name, dataframe, t_sim):
         self.name = name
