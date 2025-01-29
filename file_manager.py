@@ -52,7 +52,7 @@ class RecoRunManager:
                 description = self.runlog_df["run_description"].values[0]
                 if description != "garbage" and description != "Garbage":
                     try:
-                        with uproot.open(f"{data_dir_path}{RUN_5}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
+                        with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
                             CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
                             PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
                             df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
@@ -133,7 +133,14 @@ class RunManager:
 
     def read_hdf5(self):
         return pd.read_hdf(f"{self.path_to_data}/data.h5", key = "CMOS")
+    
+    def calc_R_PMT(self):
+        PMT_df = pd.read_hdf(f"{self.path_to_data}/data.h5", key = "PMT")
+        n_wf = len(PMT_df.groupby(level=0))
+        n_PMT = 4
+        n_digitizer = 2 
 
+        return n_wf/n_PMT/n_digitizer
 
 class Isotope:
     def __init__(self, name, dataframe, t_sim):
@@ -246,19 +253,22 @@ class SimulationManager:
         
 
 def main():
-    AmBe_campaign = [96373,96383] #98298
-    Run5_last_days = [92127,96372]
+    AmBe_campaign = [96373,98298]
+    Run5_last_days = [92127,92137] #96372
 
     runlog_df = pd.read_csv("runlog.csv")
 
     Run5 = RecoRunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
     AmBe = RecoRunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
     
-    data_dir_path = f"{CYGNO_ANALYSIS}"
-    df_list = RecoRunManager.create_df_list(AmBe, data_dir_path)
+    data_dir_path = f"{CYGNO_ANALYSIS}{RUN_5}"
+    df_list = RecoRunManager.create_df_list(Run5, data_dir_path)
 
-    run_list = RecoRunManager.add_runtype_tag(AmBe, df_list)
-    RecoRunManager.merge_and_create_hdf5(AmBe, run_list, "AmBe_data")
+    run_list = RecoRunManager.add_runtype_tag(Run5, df_list)
+    RecoRunManager.merge_and_create_hdf5(Run5, run_list, "Run5_data")
+
+    Run5_tot = RunManager(5, "/Users/melbadastolfo/Desktop/CYGNO/RUN5/AmBe/Run5_data")
+    print(Run5_tot.calc_R_PMT)
 
     # internal_components = ["DetectorBody"]
     # external_components = []
