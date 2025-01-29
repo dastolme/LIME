@@ -127,7 +127,7 @@ class Run:
         self.R_PMT = R_PMT
 
 class RunManager:
-    def __int__(self, run_number, path_to_data):
+    def __init__(self, run_number, path_to_data):
         self.run_number = run_number
         self.path_to_data = path_to_data
 
@@ -254,7 +254,7 @@ class SimulationManager:
 
 def main():
     AmBe_campaign = [96373,98298]
-    Run5_last_days = [92127,92137] #96372
+    Run5_last_days = [92127,92132] #96372
 
     runlog_df = pd.read_csv("runlog.csv")
 
