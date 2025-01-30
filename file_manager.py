@@ -11,6 +11,7 @@ import re
 import glob
 from pathlib import Path
 import os
+import cygno as cy
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
@@ -119,6 +120,15 @@ class RecoRunManager:
                 store['PMT'] = PMT_df
 
             store.close()
+
+    def calc_total_runtime(self):
+        df = cy.read_cygno_logbook(start_run=self.run_start,end_run=(self.run_end + 1))
+        
+        init_date = df.loc[df["run_number"] == self.run_start, "start_time"].item()
+        final_date = df.loc[df["run_number"] == self.run_end, "start_time"].item()
+        total_runtime = final_date - init_date
+
+        return total_runtime.seconds
 
 class Run:
     def __init__(self, run_number, CMOS_dataframe, R_PMT):
@@ -266,9 +276,10 @@ def main():
 
     run_list = RecoRunManager.add_runtype_tag(Run5, df_list)
     RecoRunManager.merge_and_create_hdf5(Run5, run_list, "Run5_data")
+    print(RecoRunManager.calc_total_runtime(Run5))
 
-    Run5_tot = RunManager(5, "/Users/melbadastolfo/Desktop/CYGNO/RUN5/AmBe/Run5_data")
-    print(Run5_tot.calc_R_PMT)
+    # Run5_tot = RunManager(5, "/Users/melbadastolfo/Desktop/CYGNO/RUN5/AmBe/Run5_data")
+    # print(Run5_tot.calc_R_PMT())
 
     # internal_components = ["DetectorBody"]
     # external_components = []
