@@ -13,6 +13,7 @@ from pathlib import Path
 import os
 import cygno as cy
 import urllib3
+from concurrent.futures import ThreadPoolExecutor
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
@@ -32,6 +33,8 @@ class RecoRunManager:
         self.run_end   = run_end
 
     def create_df_list(self, data_dir_path):
+
+        executor = ThreadPoolExecutor(16)
 
         param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
                     't_DBSCAN', 't_variables', 'lp_len', 't_pedsub', 't_saturation', 't_zerosup',
@@ -54,15 +57,18 @@ class RecoRunManager:
                 description = self.runlog_df["run_description"].values[0]
                 if description != "garbage" and description != "Garbage":
                     try:
-                        with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root", num_workers = 8) as root_file:
-                            CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
-                            PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
+                        with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root", 
+                                         num_workers=16, array_cache="200 MB") as root_file:
+                            CMOS_root_file = root_file["Events"].arrays(param_list, decompression_executor=executor, library="ak")
+                            PMT_root_file = root_file["PMT_Events"].arrays(decompression_executor=executor, library="ak")
                             df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
                             df_list.append(df_data)
                     except FileNotFoundError as e:
                         continue
                     except TimeoutError as e:
                         print(f"Root file opening failed (run number = {run_number})")
+                else:
+                    continue
         
         return df_list
     
@@ -267,7 +273,7 @@ class SimulationManager:
 
 def main():
     AmBe_campaign = [96373,98298]
-    Run5_last_days = [92127,92132] #96372
+    Run5_last_days = [92127,92627] #96372
 
     runlog_df = pd.read_csv("runlog.csv")
 
