@@ -12,6 +12,7 @@ import glob
 from pathlib import Path
 import os
 import cygno as cy
+import urllib3
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
@@ -122,6 +123,8 @@ class RecoRunManager:
             store.close()
 
     def calc_total_runtime(self):
+        urllib3.disable_warnings()
+        
         df = cy.read_cygno_logbook(start_run=self.run_start,end_run=(self.run_end + 1))
         
         init_date = df.loc[df["run_number"] == self.run_start, "start_time"].item()
