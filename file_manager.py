@@ -276,29 +276,3 @@ class SimulationManager:
         calib_df = pd.concat([isotope.dataframe for sublist in isotopes_list for isotope in sublist])
         
         return calib_df
-        
-
-def main():
-    AmBe_campaign = [96373,98298]
-    Run5_last_days = [73271,73371] #73271
-
-    Run5 = RecoRunManager("Run5", Run5_last_days[0], Run5_last_days[1])
-    AmBe = RecoRunManager("AmBe", AmBe_campaign[0], AmBe_campaign[1])
-    
-    data_dir_path = f"{CYGNO_ANALYSIS}{RUN_5}"
-    df_list = RecoRunManager.create_df_list(Run5, data_dir_path)
-
-    run_list = RecoRunManager.add_runtype_tag(Run5, df_list)
-    RecoRunManager.merge_and_create_hdf5(Run5, run_list, "Run5_data")
-
-    Run5_tot = RunManager(5, "/Users/melbadastolfo/Desktop/CYGNO/RUN5/AmBe/Run5_data")
-    run_time = Run5_tot.calc_total_runtime()
-
-    internal_components = ["DetectorBody"]
-    external_components = []
-    LIME_simulation = SimulationManager(5, internal_components, external_components, "geant4_catalog.csv")
-    Run5_MC = LIME_simulation.read_internal_bkg_data_local()
-    LIME_simulation.create_calib_df(Run5_MC)
-
-if __name__=="__main__":
-    main()
