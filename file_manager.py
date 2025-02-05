@@ -15,6 +15,7 @@ import cygno as cy
 import urllib3
 from concurrent.futures import ThreadPoolExecutor
 import h5py
+from datetime import timedelta
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
@@ -149,17 +150,20 @@ class RunManager:
         df_data = RunManager.read_hdf5(self)
         runs_number = df_data["run"].unique()
         df_log = cy.read_cygno_logbook(start_run=runs_number.min(),end_run=runs_number.max() + 1)
+        print(df_log[["start_time", "stop_time"]].head())
     
-        init_time = [df_log.loc[df_log["run_number"] == run + 1, "start_time"].values[0] for run in runs_number.tolist()[:3]]
-        runs_time = [fin - init if fin > init else 0 for fin, init in zip(init_time[1:], init_time[:-1])]
+        init_time = [df_log.loc[df_log["run_number"] == run, "start_time"].values[0] for run in runs_number.tolist()]
+        stop_time = [df_log.loc[df_log["run_number"] == run, "stop_time"].values[0] for run in runs_number.tolist()]
+        runs_time = pd.Series([stop - init for stop, init in zip(stop_time, init_time)])
 
-        return sum(runs_time).astype('timedelta64[s]')
+        print(runs_time.sum().total_seconds())
+        return runs_time.sum().total_seconds()
     
     def calc_R_PMT(self, run_time):
         PMT_df = pd.read_hdf(f"{self.path_to_data}/data.h5", key = "PMT")
         n_wf = len(PMT_df.groupby(level=0))
         n_PMT = 4
-        n_digitizer = 2 
+        n_digitizer = 2
 
         return n_wf/n_PMT/n_digitizer/run_time
 
@@ -275,7 +279,7 @@ class SimulationManager:
 
 def main():
     AmBe_campaign = [96373,98298]
-    Run5_last_days = [73271,74724] #73271
+    Run5_last_days = [73271,73281] #73271
 
     runlog_df = pd.read_csv("runlog.csv")
 
@@ -289,7 +293,7 @@ def main():
     RecoRunManager.merge_and_create_hdf5(Run5, run_list, "Run5_data")
 
     Run5_tot = RunManager(5, "/Users/melbadastolfo/Desktop/CYGNO/RUN5/AmBe/Run5_data")
-    run_time = Run5_tot.calc_total_runtime().astype(int)
+    run_time = Run5_tot.calc_total_runtime()
     print(Run5_tot.calc_R_PMT(run_time))
 
     internal_components = ["DetectorBody"]
