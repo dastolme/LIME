@@ -28,9 +28,10 @@ class RecoRun:
         self.dataframe = dataframe
 
 class RecoRunManager:
-    def __init__(self, name, runlog_df, run_start, run_end):
+    urllib3.disable_warnings()
+    def __init__(self, name, run_start, run_end):
         self.name = name
-        self.runlog_df = runlog_df
+        self.runlog_df = cy.read_cygno_logbook(start_run=run_start,end_run=run_end)
         self.run_start = run_start
         self.run_end   = run_end
 
@@ -279,12 +280,10 @@ class SimulationManager:
 
 def main():
     AmBe_campaign = [96373,98298]
-    Run5_last_days = [73271,73281] #73271
+    Run5_last_days = [73271,74724] #73271
 
-    runlog_df = pd.read_csv("runlog.csv")
-
-    Run5 = RecoRunManager("Run5", runlog_df, Run5_last_days[0], Run5_last_days[1])
-    AmBe = RecoRunManager("AmBe", runlog_df, AmBe_campaign[0], AmBe_campaign[1])
+    Run5 = RecoRunManager("Run5", Run5_last_days[0], Run5_last_days[1])
+    AmBe = RecoRunManager("AmBe", AmBe_campaign[0], AmBe_campaign[1])
     
     data_dir_path = f"{CYGNO_ANALYSIS}{RUN_5}"
     df_list = RecoRunManager.create_df_list(Run5, data_dir_path)
