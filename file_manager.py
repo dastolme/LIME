@@ -150,23 +150,23 @@ class RunManager:
         
         df_data = RunManager.read_hdf5(self)
         runs_number = df_data["run"].unique()
-        df_log = cy.read_cygno_logbook(start_run=runs_number.min(),end_run=runs_number.max() + 1)
-        print(df_log[["start_time", "stop_time"]].head())
+        df_log = cy.read_cygno_logbook(start_run=runs_number.min(),end_run=runs_number.max()+1)
     
         init_time = [df_log.loc[df_log["run_number"] == run, "start_time"].values[0] for run in runs_number.tolist()]
         stop_time = [df_log.loc[df_log["run_number"] == run, "stop_time"].values[0] for run in runs_number.tolist()]
         runs_time = pd.Series([stop - init for stop, init in zip(stop_time, init_time)])
 
-        print(runs_time.sum().total_seconds())
         return runs_time.sum().total_seconds()
     
     def calc_R_PMT(self, run_time):
         PMT_df = pd.read_hdf(f"{self.path_to_data}/data.h5", key = "PMT")
-        n_wf = len(PMT_df.groupby(level=0))
+        runs_number = PMT_df["pmt_wf_run"].unique()
+        n_wf = []
+        [n_wf.append(len(PMT_df.loc[PMT_df["pmt_wf_run"] == run].groupby(level=0))) for run in runs_number.tolist()]
         n_PMT = 4
         n_digitizer = 2
 
-        return n_wf/n_PMT/n_digitizer/run_time
+        return sum(n_wf)/n_PMT/n_digitizer/run_time
 
 class Isotope:
     def __init__(self, name, dataframe, t_sim):
@@ -280,7 +280,7 @@ class SimulationManager:
 
 def main():
     AmBe_campaign = [96373,98298]
-    Run5_last_days = [73271,74724] #73271
+    Run5_last_days = [73271,73371] #73271
 
     Run5 = RecoRunManager("Run5", Run5_last_days[0], Run5_last_days[1])
     AmBe = RecoRunManager("AmBe", AmBe_campaign[0], AmBe_campaign[1])
@@ -293,7 +293,6 @@ def main():
 
     Run5_tot = RunManager(5, "/Users/melbadastolfo/Desktop/CYGNO/RUN5/AmBe/Run5_data")
     run_time = Run5_tot.calc_total_runtime()
-    print(Run5_tot.calc_R_PMT(run_time))
 
     internal_components = ["DetectorBody"]
     external_components = []
