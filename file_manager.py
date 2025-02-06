@@ -151,22 +151,20 @@ class RunManager:
         df_data = RunManager.read_hdf5(self)
         runs_number = df_data["run"].unique()
         df_log = cy.read_cygno_logbook(start_run=runs_number.min(),end_run=runs_number.max()+1)
-    
-        init_time = [df_log.loc[df_log["run_number"] == run, "start_time"].values[0] for run in runs_number.tolist()]
-        stop_time = [df_log.loc[df_log["run_number"] == run, "stop_time"].values[0] for run in runs_number.tolist()]
-        runs_time = pd.Series([stop - init for stop, init in zip(stop_time, init_time)])
+        df_log = df_log[['run_number', 'start_time', 'stop_time']]
+
+        run_mask = df_log["run_number"].isin(runs_number)
+        runs_time = df_log[run_mask]["stop_time"].sub(df_log[run_mask]["start_time"])
 
         return runs_time.sum().total_seconds()
     
     def calc_R_PMT(self, run_time):
         PMT_df = pd.read_hdf(f"{self.path_to_data}/data.h5", key = "PMT")
-        runs_number = PMT_df["pmt_wf_run"].unique()
-        n_wf = []
-        [n_wf.append(len(PMT_df.loc[PMT_df["pmt_wf_run"] == run].groupby(level=0))) for run in runs_number.tolist()]
+        n_wf = len(PMT_df.groupby(['entry','pmt_wf_run']).size())
         n_PMT = 4
         n_digitizer = 2
 
-        return sum(n_wf)/n_PMT/n_digitizer/run_time
+        return n_wf/n_PMT/n_digitizer/run_time
 
 class Isotope:
     def __init__(self, name, dataframe, t_sim):
