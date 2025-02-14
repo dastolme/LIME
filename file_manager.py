@@ -69,7 +69,7 @@ class RecoRunManager:
         
         def read_many_files(run_list, data_dir_path):
             with ThreadPoolExecutor() as executor:
-                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list), total=len(run_list)))
+                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list, chunksize=50), total=len(run_list)))
 
             return df_list
 
