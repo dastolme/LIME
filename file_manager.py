@@ -37,8 +37,6 @@ class RecoRunManager:
 
     def create_df_list(self, data_dir_path):
 
-        executor = ThreadPoolExecutor(16)
-
         param_list = ['run', 'event', 'pedestal_run', 'cmos_integral', 'cmos_mean', 'cmos_rms',
                     't_DBSCAN', 't_variables', 'lp_len', 't_pedsub', 't_saturation', 't_zerosup',
                     't_xycut', 't_rebin', 't_medianfilter', 't_noisered', 'nSc', 'sc_size', 'sc_nhits',
@@ -55,23 +53,29 @@ class RecoRunManager:
 
         print(f"Total runs: {self.run_end-self.run_start}")
 
-        for chunk in batched(np.arange(self.run_start,self.run_end),CHUNK_SIZE):
-            for run_number in tqdm(chunk):
-                description = self.runlog_df["run_description"].values[0]
-                if description != "garbage" and description != "Garbage":
-                    try:
-                        with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root", 
-                                         num_workers=16, array_cache="200 MB") as root_file:
-                            CMOS_root_file = root_file["Events"].arrays(param_list, decompression_executor=executor, library="ak")
-                            PMT_root_file = root_file["PMT_Events"].arrays(decompression_executor=executor, library="ak")
-                            df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
-                            df_list.append(df_data)
-                    except FileNotFoundError as e:
-                        continue
-                    except TimeoutError as e:
-                        print(f"Root file opening failed (run number = {run_number})")
-                else:
-                    continue
+        def read_single_file(data_dir_path, run_number):
+            description = self.runlog_df["run_description"].values[0]
+            if description != "garbage" and description != "Garbage":
+                try:
+                    with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root") as root_file:
+                        CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
+                        PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
+                        df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
+                    return df_data
+                except FileNotFoundError as e:
+                    print("FileNotFound")
+                except TimeoutError as e:
+                    print(f"Root file opening failed (run number = {run_number})")
+        
+        def read_many_files(run_list, data_dir_path):
+            with ThreadPoolExecutor() as executor:
+                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list), total=len(run_list)))
+
+            return df_list
+
+        run_list = [num for num in range(self.run_start,self.run_end)]
+        path_list = [data_dir_path for i in range(self.run_start,self.run_end)]
+        df_list = read_many_files(run_list, path_list)
         
         return df_list
     
