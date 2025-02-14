@@ -194,12 +194,6 @@ class SimulationManager:
         self.ext_bkg_sources = ext_bkg_sources
         self.geant4_catalog = pd.read_csv(geant4_catalog)
 
-    def get_component_mass(self, input_file, component):
-        with open(input_file, 'r') as file:
-            masses = yaml.safe_load(file)
-
-        return masses[component]
-
     def read_internal_bkg_data(self, file_path):
 
         int_bkg_sources_list = []
