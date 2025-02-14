@@ -192,15 +192,10 @@ class SimulationManager:
         self.run_number = run_number
         self.int_bkg_sources = int_bkg_sources
         self.ext_bkg_sources = ext_bkg_sources
-        self.geant4_catalog = geant4_catalog
+        self.geant4_catalog = pd.read_csv(geant4_catalog)
 
-    def read_internal_bkg_data(self):
-        run_file_path = f"LIME-digitized/"
-        response = urlopen(f"{CYGNO_SIMULATION}")
-        xml = response.read().decode('utf-8')
+    def read_internal_bkg_data(self, file_path):
 
-        geant4_catalog = pd.read_csv(self.geant4_catalog)
-        
         int_bkg_sources_list = []
         
         with open('components_mass.yaml', 'r') as file:
@@ -211,59 +206,20 @@ class SimulationManager:
         
         for source in self.int_bkg_sources:
             isotopes_list = []
-            folders_name = re.compile(f"{run_file_path}{source}/.*/")
-            folders_list = folders_name.findall(xml)
+            source_file = h5py.File(f"{file_path}{source}.h5", 'r')
             
-            for folder in folders_list:
-                isotope_name = str(folder).partition('_')[2][:-1]
+            for key in list(source_file.keys()):
+                isotope_name = str(key).partition('_')[2][:-1]
 
                 root_file_path = re.compile(f"/s3/cygno-sim/LIME_MC_data/LIME_{source}_Radioactivity_10umStep/.*_{isotope_name}.root")
-                N_sim_decays = geant4_catalog[geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
+                N_sim_decays = self.geant4_catalog[self.geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
                 isotope_activity = [name for tuple, name in dict_activity[source].get('activities').items() if isotope_name in tuple][0]
                 t_sim = N_sim_decays / ( isotope_activity * masses[source] )
                 
-                reco_file_path = Path(f"{CYGNO_SIMULATION}{run_file_path}{source}/{folder}")
-                print(list(reco_file_path.glob("*.root")))
-                dataframe = uproot.open(reco_file_path.glob("reco_run*.root")[0])
+                dataframe = pd.read_hdf(source_file, key = f"{key}")
                 
                 isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
             
-            int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
-        
-        return Simulation(int_bkg_sources_list)
-    
-    def read_internal_bkg_data_local(self):
-        run_file_path = f"/Users/melbadastolfo/Desktop/MC/LIME-digitized/Run{self.run_number}/"
-
-        geant4_catalog = pd.read_csv(self.geant4_catalog)
-        
-        int_bkg_sources_list = []
-        
-        with open('components_mass.yaml', 'r') as file:
-            masses = yaml.safe_load(file)
-
-        with open('activities.yaml', 'r') as file:
-            dict_activity = yaml.full_load(file)
-        
-        for source in self.int_bkg_sources:
-            isotopes_list = []
-            folders_list = [files for files in os.walk(f"{run_file_path}{source}")][0][1]
-            
-            for folder in folders_list:
-                isotope_name = str(folder).partition('_')[2]
-
-                root_file_path = re.compile(f"/s3/cygno-sim/LIME_MC_data/LIME_{source}_Radioactivity_10umStep/.*_{isotope_name}.root")
-                N_sim_decays = geant4_catalog[geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
-                isotope_activity = [name for tuple, name in dict_activity[source].get('activities').items() if isotope_name in tuple][0]
-                t_sim = N_sim_decays / ( isotope_activity * masses[source] )
-
-                reco_file_path = Path(f"{run_file_path}{source}/{folder}")
-                with uproot.open(list(reco_file_path.glob("*.root"))[0]) as reco_file:
-                    print(reco_file['Events;1'].keys())
-                    dataframe = ak.to_dataframe(reco_file['Events;1'].arrays(library = "ak"))
-                
-                isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
-
             int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
         
         return Simulation(int_bkg_sources_list)
