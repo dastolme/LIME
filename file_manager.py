@@ -54,18 +54,16 @@ class RecoRunManager:
         print(f"Total runs: {self.run_end-self.run_start}")
 
         def read_single_file(data_dir_path, run_number):
-            description = self.runlog_df["run_description"].values[0]
-            if description != "garbage" and description != "Garbage":
-                try:
-                    with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root") as root_file:
-                        CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
-                        PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
-                        df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
-                    return df_data
-                except FileNotFoundError as e:
-                    print("FileNotFound")
-                except TimeoutError as e:
-                    print(f"Root file opening failed (run number = {run_number})")
+            try:
+                with uproot.open(f"{data_dir_path}reco_run{run_number}_3D.root") as root_file:
+                    CMOS_root_file = root_file["Events"].arrays(param_list, library="ak")
+                    PMT_root_file = root_file["PMT_Events"].arrays(library="ak")
+                    df_data = [ak.to_dataframe(CMOS_root_file), ak.to_dataframe(PMT_root_file)]
+                return df_data
+            except FileNotFoundError as e:
+                print("FileNotFound")
+            except TimeoutError as e:
+                print(f"Root file opening failed (run number = {run_number})")
         
         def read_many_files(run_list, data_dir_path):
             with ThreadPoolExecutor() as executor:
@@ -73,7 +71,8 @@ class RecoRunManager:
 
             return df_list
 
-        run_list = [num for num in range(self.run_start,self.run_end)]
+        garbage_df = self.runlog_df.loc[self.runlog_df["run_description"].str.lower() == "garbage", ["run_number"]]
+        run_list = [num for num in range(self.run_start,self.run_end) if garbage_df.empty or ~garbage_df.isin([num])]
         path_list = [data_dir_path for i in range(self.run_start,self.run_end)]
         df_list = read_many_files(run_list, path_list)
         
