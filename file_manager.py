@@ -76,14 +76,13 @@ class RecoRunManager:
         path_list = [data_dir_path for i in range(self.run_start,self.run_end)]
         df_list = read_many_files(run_list, path_list)
         
-        return df_list
+        return [df for df in df_list if df != None]
     
     def add_runtype_tag(self, df_list):
 
         run_list = []
 
         for df_data in tqdm(df_list):
-            print(df_data)
             df = df_data[0]
             dfinfo = self.runlog_df[self.runlog_df["run_number"]==df['run'].unique()[0]].copy()
             if len(dfinfo) == 0:
