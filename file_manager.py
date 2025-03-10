@@ -20,7 +20,6 @@ from datetime import timedelta
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
 CYGNO_SIMULATION = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-sim/"
-CHUNK_SIZE = 50
 
 class RecoRun:
     def __init__(self, type, dataframe):
@@ -66,8 +65,8 @@ class RecoRunManager:
                 print(f"Root file opening failed (run number = {run_number})")
         
         def read_many_files(run_list, data_dir_path):
-            with ThreadPoolExecutor() as executor:
-                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list, chunksize=50), total=len(run_list)))
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list), total=len(run_list)))
 
             return df_list
 
@@ -84,6 +83,7 @@ class RecoRunManager:
         run_list = []
 
         for df_data in tqdm(df_list):
+            print(df_data)
             df = df_data[0]
             dfinfo = self.runlog_df[self.runlog_df["run_number"]==df['run'].unique()[0]].copy()
             if len(dfinfo) == 0:
