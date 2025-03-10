@@ -1,0 +1,60 @@
+#!/Users/melbadastolfo/Desktop/CYGNO/Analysis/LIME/lime-venv/bin/python3.12
+#
+# G. Mazzitelli 2021
+#
+
+__version__ = '1.0'
+
+import re
+import sys
+import os
+
+import numpy as np
+import time
+import datetime
+from optparse import OptionParser
+import cygno as cy
+import json
+
+##############################
+########### Main #############
+##############################
+def main():
+    start_run=0
+    end_run=100000000
+    parser = OptionParser(usage='usage: %prog\t [-ajgv] run number')
+    parser.add_option('-j','--json', dest='json', action="store_true", default=False, help='json output;');
+    parser.add_option('-g','--google', dest='google', action="store_false", default=True, help='old google sheet;');
+    parser.add_option('-t','--tag', dest='tag', type='string', default='lngs', help='tag [lngs](lnf/man)]');
+    parser.add_option('-s','--start_run', dest='start_run', type='int', default=start_run, help='start run [0]');
+    parser.add_option('-e','--end_run', dest='end_run', type='int', default=end_run, help='end run [100000000]');
+    parser.add_option('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output;');
+    (options, args) = parser.parse_args()
+    #
+    if options.verbose: 
+        print(">> resquested arguments:", args)
+        print(">> resquested options:", options)
+
+    if len(args)==1:
+        start_run=int(args[0])
+        end_run=int(args[0])+1
+    else:
+        start_run=options.start_run
+        end_run=options.end_run
+    if options.verbose: print(options.tag, start_run, end_run)
+    try:
+        db = cy.read_cygno_logbook(sql=options.google, tag=options.tag, start_run=start_run, end_run=end_run, verbose=options.verbose)     
+        if options.verbose: print(">> ", db)
+        if len(db):
+            for index, row in db.iterrows():
+                if options.json:
+                    print(json.dumps(row.to_json()))          
+                else:
+                    print (row)
+        sys.exit(0)
+    except Exception as e:
+        print("Missing run, error:", e)
+        sys.exit(1)
+            
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,79 @@
+#!/Users/melbadastolfo/Desktop/CYGNO/Analysis/LIME/lime-venv/bin/python3.12
+#
+# G. Mazzitelli 2022
+#
+
+__version__ = '1.0'
+
+
+import midas.file_reader
+from datetime import datetime
+import numpy as np
+import cygno as cy
+import ROOT
+import os
+from root_numpy import array2hist
+
+DEFAULT_PMT_VALUE   = 5
+
+def main(run, path, verbose=False):
+    mfile = cy.open_mid(int(run), path=path, cloud=True, tag='TMP', verbose=verbose)
+    outname = path+'histograms_Run{:05d}.root'.format(int(run))
+    rf = ROOT.TFile(outname,'recreate')
+    print("Wrting to ROOT file: ", outname)
+
+    if (verbose): print("RUN: ", run)
+
+
+
+
+    for event in mfile:
+        if event.header.is_midas_internal_event():
+            if (verbose): print("Saw a special event")
+            continue
+        
+        bank_names = ", ".join(b.name for b in event.banks.values())
+        event_number = event.header.serial_number
+        if verbose:
+            print("Event # %s of type ID %s contains banks %s" % (event_number, event.header.event_id, bank_names))
+            print("Received event with timestamp %s containing banks %s" % (event.header.timestamp, bank_names))
+            print("%s, banks %s" % (datetime.utcfromtimestamp(event.header.timestamp).strftime('%Y-%m-%d %H:%M:%S'), bank_names))
+
+        for bank_name, bank in event.banks.items():
+            if bank_name=='DGH0': # PMTs wavform 
+                waveform_header = cy.daq_dgz2header(bank)
+                waveform = cy.daq_dgz2array(event.banks['DIG0'], waveform_header)
+                lenw = waveform_header[2]
+                for ipmt in range(DEFAULT_PMT_VALUE):
+                    # save all in root file
+                    
+            if bank_name=='CAM0': # CAM image
+                if event_number % 10 == 0: print("transferring image ",event_number)
+                image, _, _ = cy.daq_cam2array(bank)
+                (nx,ny) = image.shape 
+                title = "run" + ('_%04d' % event_number)
+                postfix = 'run{run}_ev{ev}'.format(run=run,ev=event_number)
+                title = 'pic_{pfx}'.format(pfx=postfix)
+                h2 = ROOT.TH2S(title,title,nx,0,nx,ny,0,ny)
+                h2.GetXaxis().SetTitle('x')
+                h2.GetYaxis().SetTitle('y')
+                _ = array2hist(np.fliplr(np.transpose(image)),h2)
+                h2.Write()
+
+            if bank_name=='INPT': # SLOW channels array
+                slow = cy.daq_slow2array(bank)
+    rf.Close()
+            
+if __name__ == "__main__":
+    from optparse import OptionParser
+    parser = OptionParser(usage='usage: %prog\t <RUN number>')
+    parser.add_option('-p','--path', dest='path', action="store", type="string", default='/tmp/', help='path to file or cache directory');
+    parser.add_option('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output;');
+    (options, args) = parser.parse_args()
+    if options.verbose: 
+        print(">> resquested arguments:", args)
+        print(">> resquested options:", options)
+    if len(args) == 1:
+        main(args[0], options.path, verbose=options.verbose)
+    else:
+        parser.error("run number missing")
