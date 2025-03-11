@@ -8,11 +8,14 @@ class AnalysisManager:
         self.dataframe = dataframe
         self.dataframe_cut = dataframe
 
-    def apply_quality_cuts(self):
-        rms_quality_cut = self.dataframe_cut['sc_rms'] > 6
-        t_gausssigma_quality_cut = self.dataframe_cut['sc_tgausssigma'] * PIXEL_LINEAR_SIZE > 0.5
+    def apply_quality_cuts(self, rms_min, t_gausssigma_min, rho_min, rho_max):
+        rms_quality_cut = self.dataframe_cut['sc_rms'] > rms_min
+        t_gausssigma_quality_cut = self.dataframe_cut['sc_tgausssigma'] * PIXEL_LINEAR_SIZE > t_gausssigma_min
+        rho_quality_lower_cut = self.dataframe_cut['sc_rms']/self.dataframe_cut['sc_nhits'] > rho_min
+        rho_quality_upper_cut = self.dataframe_cut['sc_rms']/self.dataframe_cut['sc_nhits'] < rho_max
         
-        self.dataframe_cut = self.dataframe_cut[rms_quality_cut & t_gausssigma_quality_cut]
+        self.dataframe_cut = self.dataframe_cut[rms_quality_cut & t_gausssigma_quality_cut &
+                                                rho_quality_lower_cut & rho_quality_upper_cut]
 
         return self
     
