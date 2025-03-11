@@ -1,0 +1,90 @@
+#!/Users/melbadastolfo/Desktop/CYGNO/Analysis/LIME/lime-venv/bin/python3.12
+#
+# G. Mazzitelli 2021
+#
+
+__version__ = '1.0'
+
+import os,sys
+
+import numpy as np 
+import ROOT
+from root_numpy import array2hist
+from cygno import s3, his, cmd
+
+
+def ruttalo(his_file, verbose=False):
+    stem, _ = os.path.splitext(his_file)
+    outname = stem+'.root' 
+    fpath, fname = os.path.split(his_file)
+    
+    rh = his.openHIS(his_file)
+
+    rf = ROOT.TFile(outname,'recreate')
+    if (verbose): print("HIS: ", his_file, "ROOT: ", outname)
+        
+    fname, _ = os.path.splitext(fname)
+    runN = fname.split('run')[-1] if 'run' in fname else fname.split('Run')[-1]
+    run = runN if len(runN) else 'XXXX'
+    
+    if (verbose): print("RUN: ", run)
+        
+    for idx, section in enumerate(rh):
+        if idx % 10 == 0: print("transferring image ",idx)
+        (nx,ny) = section.shape 
+        title = stem + ('_%04d' % idx)
+        postfix = 'run{run}_ev{ev}'.format(run=run,ev=idx)
+        title = 'pic_{pfx}'.format(pfx=postfix)
+        h2 = ROOT.TH2S(title,title,nx,0,nx,ny,0,ny)
+        h2.GetXaxis().SetTitle('x')
+        h2.GetYaxis().SetTitle('y')
+        _ = array2hist(np.fliplr(np.transpose(section)),h2)
+        h2.Write()
+    rf.Close()
+    return outname, run
+
+def main():
+    from optparse import OptionParser
+
+    parser = OptionParser(usage='usage: %prog\t [-d] DIRECTORY/FILEPATH')
+    parser.add_option('-f','--file', dest='file', action="store_true", default=False, help='convert sigle HIS file;');
+    parser.add_option('-d','--delete', dest='delete', action="store_true", default=False, help='delete HIS file after convertion;');
+    parser.add_option('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output;');
+    (options, args) = parser.parse_args()
+    #
+    if options.verbose: 
+        print(">> resquested arguments:", args)
+        print(">> resquested options:", options)
+    if len(args) < 1:
+        parser.error("incorrect number of arguments")
+    else:
+        path = args[0]
+        if options.file:
+            if path.endswith(".HIS"):
+                if options.verbose: print("file: {}".format(path))
+                filein, run = ruttalo(path, options.verbose)
+                fileout = 'histograms_Run{run}.root'.format(run=run)
+                print ("file {} done".format(fileout))
+                if options.delete: 
+                    cmd.rm_file(path)
+                    print ("file {} removed".format(path))
+        else:
+            for file in os.listdir(path):
+                    if file.endswith(".HIS") and (file.startswith("run") or file.startswith("Run")):
+                        his_file = path+file
+                        print (his_file)
+                        filein, run = ruttalo(his_file)
+                        fileout = 'histograms_Run{run}.root'.format(run=run)
+                        cmd.append2file(fileout, path+'/daq_rooted.log')
+                        print ("file {} done".format(fileout))
+                        if options.delete: 
+                            cmd.rm_file(his_file)
+                            print ("file {} removed".format(his_file))
+            
+            print("ALL DONE")
+                                
+                                      
+if __name__ == "__main__":
+    main()
+
+                      

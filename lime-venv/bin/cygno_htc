@@ -1,0 +1,152 @@
+#!/bin/sh
+
+args=("$@")
+
+in=`echo ${args[0]} | tr '[:upper:]' '[:lower:]'`
+export OIDC_AGENT_HTC="htct"
+export IAM_SERVER_HTC=https://iam-cygno.cloud.cnaf.infn.it/
+export OIDC_AGENT_CLOUD="htcc"
+export IAM_SERVER_CLOUD=https://iam.cloud.infn.it/
+declare -a CEIPS=('ce01-htc.cr.cnaf.infn.it' 'ce02-htc.cr.cnaf.infn.it' 'ce03-htc.cr.cnaf.infn.it' 'ce04-htc.cr.cnaf.infn.it' 'ce05-htc.cr.cnaf.infn.it' 'ce06-htc.cr.cnaf.infn.it' 'ce07-htc.cr.cnaf.infn.it')
+CEIP=${CEIPS[1]}
+declare -a OWNERS=('cygno001' 'cygno002' 'cygno003' 'cygno004' 'cygno005' 'cygno006' 'cygno007')
+OWNER=${OWNER[1]}
+
+if [ "$in" == "--tier1" ] || [ "$in" == "-t" ]; then
+    echo "Enabling htc@tier1"
+#    unset OIDC_SOCK; unset OIDCD_PID; eval `oidc-keychain` > /dev/null
+
+    if [ `oidc-gen -l | grep -c ${OIDC_AGENT_HTC}` -eq 0 ]; then
+       eval oidc-agent-service use > /dev/null
+       echo "setting up new token ${OIDC_AGENT_HTC}"
+       oidc-gen --pw-cmd="echo ${OIDC_AGENT_HTC}" -w device --issuer ${IAM_SERVER_HTC} --scope='openid compute.create offline_access profile compute.read compute.cancel compute.modify wlcg wlcg.groups' ${OIDC_AGENT_HTC} 
+       #oidc-gen --pw-cmd="echo ${OIDC_AGENT_HTC}" --reauthenticate ${OIDC_AGENT_HTC} 
+       oidc-add ${OIDC_AGENT_HTC} --pw-cmd="echo ${OIDC_AGENT_HTC}"
+    fi
+    export IAM_CLIENT_ID_HTC=`oidc-gen --pw-cmd='echo ${OIDC_AGENT_HTC}' -p ${OIDC_AGENT_HTC} | python3 -c "import sys, json; print(json.load(sys.stdin)['client_id'])"`
+    export IAM_CLIENT_SECRET_HTC=`oidc-gen --pw-cmd='echo ${OIDC_AGENT_HTC}' -p ${OIDC_AGENT_HTC} | python3 -c "import sys, json; print(json.load(sys.stdin)['client_secret'])"`
+    export REFRESH_TOKEN_HTC=`oidc-gen --pw-cmd='echo ${OIDC_AGENT_HTC}' -p ${OIDC_AGENT_HTC} | python3 -c "import sys, json; print(json.load(sys.stdin)['refresh_token'])"`
+    RESPONSE="$(curl -s -u ${IAM_CLIENT_ID_HTC}:${IAM_CLIENT_SECRET_HTC} -d grant_type=refresh_token -d refresh_token=${REFRESH_TOKEN_HTC} ${IAM_SERVER_HTC}/token)" 
+    TOKEN=`echo $RESPONSE | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])"`
+
+    TOKEN=`oidc-token ${OIDC_AGENT_HTC}`
+    export BEARER_TOKEN=$TOKEN
+    umask 0077 ; echo $TOKEN>/tmp/token
+
+    export _condor_SEC_CLIENT_AUTHENTICATION_METHODS=SCITOKENS
+    export CONDOR_CONFIG=/dev/null
+elif [ "$in" == "--cloud" ] || [ "$in" == "-c" ]; then 
+    ## back to dodas
+    echo "Enabling htc@cloud"
+    #oidc-gen --pw-cmd="echo ${OIDC_AGENT_CLOUD}" -w device --issuer ${IAM_SERVER_CLOUD} --scope='openid profile email offline_access wlcg wlcg.groups' ${OIDC_AGENT_CLOUD} 
+    if [ `oidc-gen -l | grep -c dodas` -eq 0 ]; then
+        if [ `oidc-gen -l | grep -c ${OIDC_AGENT_CLOUD}` -eq 0 ]; then
+           echo "setting up new token ${OIDC_AGENT_CLOUD}"
+           eval oidc-agent-service use > /dev/null
+           oidc-gen --pw-cmd="echo ${OIDC_AGENT_CLOUD}" -w device --issuer ${IAM_SERVER_CLOUD} --scope='openid profile email offline_access wlcg wlcg.groups' ${OIDC_AGENT_CLOUD} 
+           oidc-add ${OIDC_AGENT_CLOUD} --pw-cmd="echo ${OIDC_AGENT_CLOUD}"
+        fi
+        export IAM_CLIENT_ID_CLOUD=`oidc-gen --pw-cmd='echo ${OIDC_AGENT_CLOUD}' -p ${OIDC_AGENT_CLOUD} | python3 -c "import sys, json; print(json.load(sys.stdin)['client_id'])"`
+        export IAM_CLIENT_SECRET_CLOUD=`oidc-gen --pw-cmd='echo ${OIDC_AGENT_CLOUD}' -p ${OIDC_AGENT_CLOUD} | python3 -c "import sys, json; print(json.load(sys.stdin)['client_secret'])"`
+        export REFRESH_TOKEN_CLOUD=`oidc-gen --pw-cmd='echo ${OIDC_AGENT_CLOUD}' -p ${OIDC_AGENT_CLOUD} | python3 -c "import sys, json; print(json.load(sys.stdin)['refresh_token'])"`
+        RESPONSE="$(curl -s -u ${IAM_CLIENT_ID_CLOUD}:${IAM_CLIENT_SECRET_CLOUD} -d grant_type=refresh_token -d refresh_token=${REFRESH_TOKEN_CLOUD} ${IAM_SERVER_CLOUD}/token)" 
+        TOKEN=`echo $RESPONSE | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])"`
+
+        TOKEN=`oidc-token ${OIDC_AGENT_CLOUD}`
+        export BEARER_TOKEN=$TOKEN
+        umask 0077 ; echo $TOKEN>/tmp/token
+    fi
+    
+    unset CONDOR_CONFIG
+    unset _condor_SEC_CLIENT_AUTHENTICATION_METHODS
+elif [ "$in" == "--monitor" ] || [ "$in" == "-q" ]; then
+    if [ "$#" -gt 1 ]; then
+        idce=$[${args[1]}-1]
+        CEIP=${CEIPS[idce]}
+    fi
+    if [ -z "$CONDOR_CONFIG" ]; then
+        echo "htc@cloud"
+        condor_q -all
+    else
+        echo "htc@tier1"
+        condor_q -pool $CEIP:9619 -name $CEIP
+    fi
+elif [ "$in" == "--myjobs" ] || [ "$in" == "-m" ]; then
+    if [ "$#" -gt 1 ]; then
+        idce=$[${args[1]}-1]
+        CEIP=${CEIPS[idce]}
+        OWNER=${OWNERS[idce]}
+    fi
+    if [ -z "$CONDOR_CONFIG" ]; then
+        echo "htc@cloud"
+        condor_q -all -format "ClusterID: %d " ClusterId -format "JobStatus: %d " JobStatus -format "CygnoUser: %s\n" CygnoUser | grep $USERNAME
+    else
+        echo "htc@tier1"
+        condor_q -pool $CEIP:9619 -name $CEIP $OWNER -format "ClusterID: %d " ClusterId -format "JobStatus: %d " JobStatus -format "CygnoUser: %s\n" CygnoUser | grep $USERNAME
+    fi
+
+elif [ "$in" == "--jobs" ] || [ "$in" == "-j" ]; then
+    if [ "$#" -gt 1 ]; then
+        idce=$[${args[1]}-1]
+        CEIP=${CEIPS[idce]}
+        OWNER=${OWNERS[idce]}
+    fi
+    if [ -z "$CONDOR_CONFIG" ]; then
+        echo "htc@cloud"
+        condor_q -all -format "-----------------------------------------\n\nClusterID: %d\n" ClusterId -format "JobStatus: %d\n" JobStatus -format "CygnoUser: %s\n\n" CygnoUser
+    else
+        echo "htc@tier1"
+        condor_q -pool $CEIP:9619 -name $CEIP $OWNER -format "-----------------------------------------\n\nClusterID: %d\n" ClusterId -format "JobStatus: %d\n" JobStatus -format "CygnoUser: %s\n\n" CygnoUser
+    fi
+
+elif [ "$in" == "--submit" ] || [ "$in" == "-s" ]; then
+    if [ "$#" -gt 2 ]; then
+        idce=$[${args[2]}-1]
+        CEIP=${CEIPS[idce]}
+    fi
+    if [ -z "$CONDOR_CONFIG" ]; then
+        echo "htc@cloud"
+        condor_submit -spool ${args[1]}
+
+    else
+        echo "htc@tier1"
+        condor_submit -spool ${args[1]} -pool $CEIP:9619 -name $CEIP 
+    fi
+elif [ "$in" == "--tranfer" ] || [ "$in" == "-f" ]; then
+    if [ "$#" -gt 2 ]; then
+        idce=$[${args[2]}-1]
+        CEIP=${CEIPS[idce]}
+    fi
+    if [ -z "$CONDOR_CONFIG" ]; then
+        echo "htc@cloud"
+        condor_transfer_data ${args[1]}
+
+    else
+        echo "htc@tier1"
+        condor_transfer_data ${args[1]} -pool $CEIP:9619 -name $CEIP  
+    fi
+elif [ "$in" == "--remove" ] || [ "$in" == "-r" ]; then
+    if [ "$#" -gt 2 ]; then
+        idce=$[${args[2]}-1]
+        CEIP=${CEIPS[idce]}
+    fi
+    if [ -z "$CONDOR_CONFIG" ]; then
+        echo "htc@cloud"
+        condor_rm ${args[1]}
+
+    else
+        echo "htc@tier1"
+        condor_rm ${args[1]} -pool $CEIP:9619 -name $CEIP  
+    fi
+elif [ "$in" == "--help" ] || [ "$in" == "-h" ] || [ -z "$in" ]; then
+#elif [ [ "$in" == "--help"] || [ "$in" == "-h"] || [ ! -z "$in"  ] ]; then
+    echo "Usage:"
+    echo "  -t/-c --tier1/--cloud, configure/switch between htc@tier1 and htc@cloud" 
+    echo "  -s --submit, submit a job:  -s <subfilename> <ceid> [only for tier1 ceid=1-7 default ce02]"
+    echo "  -f --tranfer, tranfer files: -f <jobid> <ceid> [only for tier1 ceid=1-7 default ce02]"
+    echo "  -r --remove, remove jobs: -r <jobid> <ceid> [only for tier1 ceid=1-7 default ce02]"
+    echo "  -q --monitor, monitor jobs: -q <ceid> [only for tier1 ceid=1-7 default ce02]"
+    echo "  -m --myjobs, monitor my jobs (${USERNAME}): -m <ceid> [only for tier1 ceid=1-7 default ce02]"
+    echo "  -j --jobs, monitor all jobs: -j <ceid> [only for tier1 ceid=1-7 default ce02]"
+    echo "  -h --help, show this help"
+fi
