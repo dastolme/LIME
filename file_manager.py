@@ -16,8 +16,6 @@ import urllib3
 from concurrent.futures import ThreadPoolExecutor
 import h5py
 from datetime import timedelta
-import dask.dataframe as dd
-import dask.multiprocessing
 import aiohttp
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
@@ -151,8 +149,7 @@ class RunManager:
         self.path_to_data = path_to_data
 
     def read_hdf5(self): 
-        dask.config.set(scheduler='threads', num_workers = 8)  
-        return dd.read_hdf(f'{self.path_to_data}/data.h5', '/CMOS').compute()
+        return pd.read_hdf(f'{self.path_to_data}/data.h5', '/CMOS')
     
     def calc_total_runtime(self):
         urllib3.disable_warnings()
