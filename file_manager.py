@@ -154,7 +154,7 @@ class RunManager:
     def calc_total_runtime(self):
         urllib3.disable_warnings()
         
-        df_data = RunManager.read_hdf5(self)
+        df_data = RunManager.read_hdf5(self, data_type='data')
         runs_number = df_data["run"].unique()
         df_log = cy.read_cygno_logbook(start_run=runs_number.min(),end_run=runs_number.max()+1)
         df_log = df_log[['run_number', 'start_time', 'stop_time']]
