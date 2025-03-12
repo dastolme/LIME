@@ -16,6 +16,8 @@ import urllib3
 from concurrent.futures import ThreadPoolExecutor
 import h5py
 from datetime import timedelta
+import dask.dataframe as dd
+import aiohttp
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
@@ -63,10 +65,12 @@ class RecoRunManager:
                 print("FileNotFound")
             except TimeoutError as e:
                 print(f"Root file opening failed (run number = {run_number})")
+            except aiohttp.client_exceptions.ClientResponseError as e: 
+                print(f"Encountered an error: {e}")
         
         def read_many_files(run_list, data_dir_path):
             with ThreadPoolExecutor(max_workers=8) as executor:
-                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list), total=len(run_list)))
+                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list, chunksize=1000), total=len(run_list)))
 
             return df_list
 
@@ -129,8 +133,8 @@ class RecoRunManager:
             if len(df_data_list) != 0:
                 CMOS_df = pd.concat([dataframe[0] for dataframe in df_data_list])
                 PMT_df = pd.concat([dataframe[1] for dataframe in df_data_list])
-                store['CMOS'] = CMOS_df
-                store['PMT'] = PMT_df
+                store.put('CMOS', CMOS_df, format='table')
+                store.put('PMT', PMT_df, format='table')
 
             store.close()
 
@@ -145,8 +149,8 @@ class RunManager:
         self.run_number = run_number
         self.path_to_data = path_to_data
 
-    def read_hdf5(self):
-        return pd.read_hdf(f"{self.path_to_data}/data.h5", key = "CMOS")
+    def read_hdf5(self): 
+        return dd.read_hdf(f'{self.path_to_data}/data.h5', '/CMOS')
     
     def calc_total_runtime(self):
         urllib3.disable_warnings()
