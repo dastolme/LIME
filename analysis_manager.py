@@ -12,9 +12,8 @@ class AnalysisManager:
         self.oxygen_midas = pd.read_csv('/Volumes/SSD2/Data/GasSystem-Oxygen-Run5.csv')
 
     def apply_run_stability_cuts(self, gas_flow_min, humidity_max, oxygen_max):
-        run_start = min(self.dataframe_cut['run'].unique())
-        run_end = max(self.dataframe_cut['run'].unique())
-        log_book = cy.read_cygno_logbook(start_run=run_start,end_run=run_end)
+        runs = self.dataframe_cut['run'].unique()
+        log_book = cy.read_cygno_logbook(start_run=min(runs),end_run=max(runs))
         
         gas_flow_cut = self.dataframe_cut['run'].isin(log_book.loc[log_book["total_gas_flow"] >= gas_flow_min, 'run_number'])
         humidity_cut = self.dataframe_cut['Humidity'] < humidity_max
