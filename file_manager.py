@@ -148,8 +148,8 @@ class RunManager:
         self.run_number = run_number
         self.path_to_data = path_to_data
 
-    def read_hdf5(self):
-        return pd.read_hdf(f'{self.path_to_data}/data.h5', '/CMOS')
+    def read_hdf5(self, data_type):
+        return pd.read_hdf(f'{self.path_to_data}/{data_type}.h5', '/CMOS')
     
     def calc_total_runtime(self):
         urllib3.disable_warnings()
