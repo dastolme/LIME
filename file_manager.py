@@ -76,7 +76,7 @@ class RecoRunManager:
 
         garbage_df = self.runlog_df.loc[self.runlog_df["run_description"].str.lower() == "garbage", ["run_number"]]
         run_list = [num for num in range(self.run_start,self.run_end) 
-                    if garbage_df.empty or ~garbage_df.isin([num]).any().any()]
+                    if garbage_df.empty or not garbage_df.isin([num]).any().any()]
         path_list = [data_dir_path for i in range(self.run_start,self.run_end)]
         df_list = read_many_files(run_list, path_list)
         
