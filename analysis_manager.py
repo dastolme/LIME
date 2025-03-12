@@ -1,7 +1,6 @@
 import cygno as cy
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
 
 PIXEL_LINEAR_SIZE = 0.152 # mm
 
@@ -12,13 +11,29 @@ class AnalysisManager:
         self.oxygen_midas = pd.read_csv('/Volumes/SSD2/Data/GasSystem-Oxygen-Run5.csv')
 
     def apply_run_stability_cuts(self, gas_flow_min, humidity_max, oxygen_max):
-        runs = self.dataframe_cut['run'].unique()
-        log_book = cy.read_cygno_logbook(start_run=min(runs),end_run=max(runs))
+        def get_unixtime(dt64):
+            return dt64.astype('datetime64[s]').astype('int')
         
-        gas_flow_cut = self.dataframe_cut['run'].isin(log_book.loc[log_book["total_gas_flow"] >= gas_flow_min, 'run_number'])
+        runs = self.dataframe_cut['run'].unique()
+        log_book = cy.read_cygno_logbook(start_run=min(runs),end_run=max(runs)+1)
+ 
+        gas_flow_cut = self.dataframe_cut['run'].isin(log_book.loc[log_book['total_gas_flow'] >= gas_flow_min, 'run_number'])
         humidity_cut = self.dataframe_cut['Humidity'] < humidity_max
 
-        self.dataframe_cut = self.dataframe_cut[gas_flow_cut & humidity_cut]
+        oxygen_below_level = []
+        for run in runs:
+            start_time = get_unixtime(log_book.loc[log_book['run_number'] == run, 'start_time'].values[0])
+            stop_time = get_unixtime(log_book.loc[log_book['run_number'] == run, 'stop_time'].values[0])
+            oxygen_level = self.oxygen_midas.loc[(start_time <= self.oxygen_midas['Time'])
+                                                & (self.oxygen_midas['Time'] <= stop_time), ['Oxygen']]
+            if oxygen_level[oxygen_level['Oxygen'] >= oxygen_max].empty:
+                oxygen_below_level.append(run)
+            else:
+                continue
+
+        oxygen_cut = self.dataframe_cut['run'].isin(oxygen_below_level)
+
+        self.dataframe_cut = self.dataframe_cut[gas_flow_cut & humidity_cut & oxygen_cut]
         
         return self
 
