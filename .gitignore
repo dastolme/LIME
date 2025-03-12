@@ -177,6 +177,7 @@ cython_debug/
 # Data files
 *.parquet
 *.png
+/data
 
 # Hidden files
 .DS_Store
