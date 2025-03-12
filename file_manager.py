@@ -16,6 +16,8 @@ import urllib3
 from concurrent.futures import ThreadPoolExecutor
 import h5py
 from datetime import timedelta
+import dask.dataframe as dd
+import aiohttp
 
 CYGNO_ANALYSIS = "https://s3.cloud.infn.it/v1/AUTH_2ebf769785574195bde2ff418deac08a/cygno-analysis/"
 RUN_5 = "RECO/Run5/"
@@ -63,10 +65,12 @@ class RecoRunManager:
                 print("FileNotFound")
             except TimeoutError as e:
                 print(f"Root file opening failed (run number = {run_number})")
+            except aiohttp.client_exceptions.ClientResponseError as e: 
+                print(f"Encountered an error: {e}")
         
         def read_many_files(run_list, data_dir_path):
             with ThreadPoolExecutor(max_workers=8) as executor:
-                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list), total=len(run_list)))
+                df_list = list(tqdm(executor.map(read_single_file, data_dir_path, run_list, chunksize=1000), total=len(run_list)))
 
             return df_list
 
@@ -129,8 +133,8 @@ class RecoRunManager:
             if len(df_data_list) != 0:
                 CMOS_df = pd.concat([dataframe[0] for dataframe in df_data_list])
                 PMT_df = pd.concat([dataframe[1] for dataframe in df_data_list])
-                store['CMOS'] = CMOS_df
-                store['PMT'] = PMT_df
+                store.put('CMOS', CMOS_df, format='table')
+                store.put('PMT', PMT_df, format='table')
 
             store.close()
 
@@ -145,8 +149,8 @@ class RunManager:
         self.run_number = run_number
         self.path_to_data = path_to_data
 
-    def read_hdf5(self):
-        return pd.read_hdf(f"{self.path_to_data}/data.h5", key = "CMOS")
+    def read_hdf5(self): 
+        return dd.read_hdf(f'{self.path_to_data}/data.h5', '/CMOS')
     
     def calc_total_runtime(self):
         urllib3.disable_warnings()
@@ -195,15 +199,10 @@ class SimulationManager:
         self.run_number = run_number
         self.int_bkg_sources = int_bkg_sources
         self.ext_bkg_sources = ext_bkg_sources
-        self.geant4_catalog = geant4_catalog
+        self.geant4_catalog = pd.read_csv(geant4_catalog)
 
-    def read_internal_bkg_data(self):
-        run_file_path = f"LIME-digitized/"
-        response = urlopen(f"{CYGNO_SIMULATION}")
-        xml = response.read().decode('utf-8')
+    def read_internal_bkg_data(self, file_path):
 
-        geant4_catalog = pd.read_csv(self.geant4_catalog)
-        
         int_bkg_sources_list = []
         
         with open('components_mass.yaml', 'r') as file:
@@ -214,59 +213,20 @@ class SimulationManager:
         
         for source in self.int_bkg_sources:
             isotopes_list = []
-            folders_name = re.compile(f"{run_file_path}{source}/.*/")
-            folders_list = folders_name.findall(xml)
+            source_file = h5py.File(f"{file_path}{source}.h5", 'r')
             
-            for folder in folders_list:
-                isotope_name = str(folder).partition('_')[2][:-1]
+            for key in list(source_file.keys()):
+                isotope_name = str(key).partition('_')[2][:-1]
 
                 root_file_path = re.compile(f"/s3/cygno-sim/LIME_MC_data/LIME_{source}_Radioactivity_10umStep/.*_{isotope_name}.root")
-                N_sim_decays = geant4_catalog[geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
+                N_sim_decays = self.geant4_catalog[self.geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
                 isotope_activity = [name for tuple, name in dict_activity[source].get('activities').items() if isotope_name in tuple][0]
                 t_sim = N_sim_decays / ( isotope_activity * masses[source] )
                 
-                reco_file_path = Path(f"{CYGNO_SIMULATION}{run_file_path}{source}/{folder}")
-                print(list(reco_file_path.glob("*.root")))
-                dataframe = uproot.open(reco_file_path.glob("reco_run*.root")[0])
+                dataframe = pd.read_hdf(source_file, key = f"{key}")
                 
                 isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
             
-            int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
-        
-        return Simulation(int_bkg_sources_list)
-    
-    def read_internal_bkg_data_local(self):
-        run_file_path = f"/Users/melbadastolfo/Desktop/MC/LIME-digitized/Run{self.run_number}/"
-
-        geant4_catalog = pd.read_csv(self.geant4_catalog)
-        
-        int_bkg_sources_list = []
-        
-        with open('components_mass.yaml', 'r') as file:
-            masses = yaml.safe_load(file)
-
-        with open('activities.yaml', 'r') as file:
-            dict_activity = yaml.full_load(file)
-        
-        for source in self.int_bkg_sources:
-            isotopes_list = []
-            folders_list = [files for files in os.walk(f"{run_file_path}{source}")][0][1]
-            
-            for folder in folders_list:
-                isotope_name = str(folder).partition('_')[2]
-
-                root_file_path = re.compile(f"/s3/cygno-sim/LIME_MC_data/LIME_{source}_Radioactivity_10umStep/.*_{isotope_name}.root")
-                N_sim_decays = geant4_catalog[geant4_catalog["File"].str.contains(root_file_path)]["NTot"].values[0]
-                isotope_activity = [name for tuple, name in dict_activity[source].get('activities').items() if isotope_name in tuple][0]
-                t_sim = N_sim_decays / ( isotope_activity * masses[source] )
-
-                reco_file_path = Path(f"{run_file_path}{source}/{folder}")
-                with uproot.open(list(reco_file_path.glob("*.root"))[0]) as reco_file:
-                    print(reco_file['Events;1'].keys())
-                    dataframe = ak.to_dataframe(reco_file['Events;1'].arrays(library = "ak"))
-                
-                isotopes_list.append(Isotope(isotope_name, dataframe, t_sim))
-
             int_bkg_sources_list.append(InternalBkgSource(source, isotopes_list))
         
         return Simulation(int_bkg_sources_list)
